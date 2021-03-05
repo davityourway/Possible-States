@@ -85,7 +85,7 @@ class MonteCarlo:
         for turn in range(positions):
             m = turn//2
             n = turn - m
-            totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-(n+m)))
+            totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-turn))
         return totals
 
     def update_term_estimate(self):
@@ -101,7 +101,23 @@ class BoardState:
         self.terminal = terminal
 
 
-def estimate_
+def estimate_proportions(mc_record: 'MonteCarlo'):
+    total = 1
+    proportions = [1]
+    for turn in range(mc_record.max_moves):
+        non_term = mc_record.non_term_states[turn]
+        term = mc_record.term_states[turn]
+        prop_nt = non_term/(term+non_term)
+        choices_nt = mc_record.max_moves - turn
+        total_nt = proportions[-1]*prop_nt*choices_nt
+        total += total_nt
+        proportions.append(total_nt)
+    normed_proportions = [proportion/total for proportion in proportions]
+    return normed_proportions
+
+
+
+
 
 
 a = MonteCarlo(3, 3, 3)
