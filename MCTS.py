@@ -1,5 +1,6 @@
 import itertools
 import random as rand
+import copy
 import math
 import numpy as np
 import scipy as sp
@@ -18,7 +19,7 @@ class MonteCarlo:
         self.boards = {}
         self.all_positions = [(x, y) for x in range(m) for y in range(n)]
         self.root = self.make_root(m, n)
-        self.term_states = {x: 1 for x in range(1, n*m + 1)}
+        self.term_states = {x: 0 for x in range(1, n*m + 1)}
         self.non_term_states = {x: 1 for x in range(1, n*m + 1)}
         self.avg_depth = 0
         self.games_played = 0
@@ -33,7 +34,7 @@ class MonteCarlo:
         while not (curr.terminal or depth > self.max_moves):
             depth += 1
             move = game.pop()
-            new_pos = curr.positions[:][:]
+            new_pos = copy.deepcopy(curr.positions)
             new_player = "First" if curr.player == "Second" else "Second"
             new_pos[move[0]][move[1]] = "1" if curr.player == "First" else "2"
             board_key = "".join(itertools.chain.from_iterable(new_pos+[[new_player]]))
@@ -47,7 +48,7 @@ class MonteCarlo:
                     self.term_states[depth] += 1
                 else:
                     self.non_term_states[depth] += 1
-        self.avg_depth += depth/self.games_played
+        self.avg_depth = (self.avg_depth*(self.games_played-1) + depth)/self.games_played
 
     def check_move(self, positions: List[List[str]], move: Tuple[int,int], player: str):
         target = "1" if player == "First" else "2"
@@ -78,7 +79,7 @@ class MonteCarlo:
 
     def find_states_per_turn(self, positions: int):
         totals = {x: 0 for x in range(1, positions+1)}
-        for turn in range(positions):
+        for turn in range(1, positions+1):
             m = turn//2
             n = turn - m
             totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-turn))
@@ -89,6 +90,16 @@ class MonteCarlo:
         self.non_term_estimate = 0
         for turn in range(1, self.max_moves+1):
             self.non_term_estimate += proportions[turn-1] * self.states_per_turn[turn]
+
+    def simulate_n_games(self, n: int):
+        for i in range(n):
+            self.play_game()
+            if not i%500:
+                print(len(self.boards), self.avg_depth)
+                print(self.non_term_states)
+                print(self.term_states)
+        self.update_non_term_estimate()
+        print(self.non_term_estimate)
 
 
 
@@ -116,12 +127,12 @@ def estimate_proportions(mc_record: 'MonteCarlo'):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
-        choices_nt = mc_record.max_moves - turn
-        next_turn_states = proportions[-1]*prop_nt*choices_nt
-        total += next_turn_states
-        proportions.append(next_turn_states)
-    normed_proportions = [proportion/total for proportion in proportions]
-    return normed_proportions
+        # choices_nt = mc_record.max_moves - turn
+        # next_turn_states = proportions[-1]*prop_nt*choices_nt
+        # total += next_turn_states
+        # proportions.append(next_turn_states)
+        proportions.append(prop_nt)
+    return proportions
 
 
 
@@ -129,6 +140,5 @@ def estimate_proportions(mc_record: 'MonteCarlo'):
 
 
 a = MonteCarlo(3, 3, 3)
-a.play_game()
-print(a.boards)
-print(a.term_states, a.non_term_states)
+a.simulate_n_games(100000)
+print(a.states_per_turn)
