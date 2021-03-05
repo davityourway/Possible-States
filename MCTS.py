@@ -84,7 +84,7 @@ class MonteCarlo:
             totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-turn))
         return totals
 
-    def update_term_estimate(self):
+    def update_non_term_estimate(self):
         proportions = estimate_proportions(self)
         self.non_term_estimate = 0
         for turn in range(1, self.max_moves+1):
