@@ -8,7 +8,6 @@ from typing import List, Tuple
 from math import factorial as fact
 
 
-
 class MonteCarlo:
     """
 
@@ -26,6 +25,9 @@ class MonteCarlo:
         self.avg_depth = 0
         self.games_played = 0
         self.possible_games = self.total_per_tier(n*m)
+        self.term_estimate = 0
+
+    def run_n_times(self, ):
 
     def play_game(self):
         game = rand.sample(self.all_positions, len(self.all_positions))
@@ -44,6 +46,7 @@ class MonteCarlo:
             else:
                 terminal = self.check_move(curr.positions, move, curr.player) if game else True
                 curr = BoardState(new_player, new_pos, terminal)
+                self.boards[board_key] = curr
                 if curr.terminal:
                     self.term_states[depth] += 1
                 else:
@@ -75,31 +78,15 @@ class MonteCarlo:
         return root
 
     def total_per_tier(self, positions: int):
-        totals = {x: 0 for x in range(positions)}
+        totals = {x: 0 for x in range(1, positions+1)}
         for turn in range(positions):
             m = turn//2
             n = turn - m
             totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-(n+m)))
         return totals
 
-
-
-
-class RandomBoards:
-    def __init__(self, k, m, n):
-        self.k = k
-        self.m = m
-        self.n = n
-        self.num_boards = 0
-        self.terminal_boards = 0
-        self.non_term_boards = 0
-
-    def generate_board(self, m, n, k):
-        player = rand.choice(["First", "Second"])
-        positions = [[rand.choice(["0", "1", "2"]) for _ in range(n)] for row in range(m)]
-        return BoardState
-
-
+    def update_term_estimate(self):
+        self.term_estimate = sum([self.term_states[x] / (self.term_states[x] + self.non_term_states[x]) for x in range(self.n * self.m)])
 
 
 class BoardState:
