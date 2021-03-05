@@ -17,7 +17,8 @@ class MonteCarlo:
         self.root = self.make_root(m, n)
         self.term_states = {x: 0 for x in range(1, n*m + 1)}
         self.non_term_states = {x: 1 for x in range(1, n*m + 1)}
-        self.avg_depth = 0
+        self.illegal_states = {x:0 for x in range(1, n*m + 1)}
+        self.avg_game_depth = 0
         self.games_played = 0
         self.states_per_turn = self.find_states_per_turn(n * m)
         self.non_term_estimate = 0
@@ -44,10 +45,14 @@ class MonteCarlo:
                     self.term_states[depth] += 1
                 else:
                     self.non_term_states[depth] += 1
+        self.avg_game_depth = (self.avg_game_depth * (self.games_played - 1) + depth) / self.games_played
         winner = "First" if curr.player == "Second" else "Second"
         while depth < self.max_moves:
+            depth += 1
+            game.pop()
+            self.term_states[depth] += 1
+            # write second check function
 
-        self.avg_depth = (self.avg_depth*(self.games_played-1) + depth)/self.games_played
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         target = "1" if player == "First" else "2"
@@ -94,7 +99,7 @@ class MonteCarlo:
         for i in range(n):
             self.play_game()
             if not i%500:
-                print(len(self.boards), self.avg_depth)
+                print(len(self.boards), self.avg_game_depth)
                 print(self.non_term_states)
                 print(self.term_states)
         self.update_non_term_estimate()
