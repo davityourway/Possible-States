@@ -9,10 +9,7 @@ from math import factorial as fact
 
 
 class MonteCarlo:
-    """
 
-
-    """
     def __init__(self, k: int, m: int, n: int):
         self.k = k
         self.m = m
@@ -25,9 +22,8 @@ class MonteCarlo:
         self.non_term_states = {x: 1 for x in range(1, n*m + 1)}
         self.avg_depth = 0
         self.games_played = 0
-        self.possible_games = self.total_per_tier(n*m)
-        self.term_estimate = 0
-
+        self.states_per_turn = self.find_states_per_turn(n * m)
+        self.non_term_estimate = 0
 
     def play_game(self):
         game = rand.sample(self.all_positions, len(self.all_positions))
@@ -80,7 +76,7 @@ class MonteCarlo:
         self.boards[("".join(itertools.chain.from_iterable(positions+[["First"]])))] = root
         return root
 
-    def total_per_tier(self, positions: int):
+    def find_states_per_turn(self, positions: int):
         totals = {x: 0 for x in range(1, positions+1)}
         for turn in range(positions):
             m = turn//2
@@ -89,7 +85,11 @@ class MonteCarlo:
         return totals
 
     def update_term_estimate(self):
-        self.term_estimate = sum([self.term_states[x] / (self.term_states[x] + self.non_term_states[x]) for x in range(1, self.n * self.m + 1)])
+        proportions = estimate_proportions(self)
+        self.non_term_estimate = 0
+        for turn in range(1, self.max_moves+1):
+            self.non_term_estimate += proportions[turn-1] * self.states_per_turn[turn]
+
 
 
 class BoardState:
@@ -116,7 +116,7 @@ def estimate_proportions(mc_record: 'MonteCarlo'):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
-        choices_nt = mc_record.max_moves - (turn)
+        choices_nt = mc_record.max_moves - turn
         next_turn_states = proportions[-1]*prop_nt*choices_nt
         total += next_turn_states
         proportions.append(next_turn_states)
