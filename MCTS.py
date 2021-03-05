@@ -102,16 +102,24 @@ class BoardState:
 
 
 def estimate_proportions(mc_record: 'MonteCarlo'):
+    """
+
+    :param mc_record:
+    :return:
+    Uses the proportion of non-terminal states at each step to estimate how much larger the search space in the next
+    step is by multiplying that proportion by the number of possible choices. It assumes that no one can win on the
+    first move
+    """
     total = 1
     proportions = [1]
-    for turn in range(mc_record.max_moves):
+    for turn in range(1, mc_record.max_moves):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
-        choices_nt = mc_record.max_moves - turn
-        total_nt = proportions[-1]*prop_nt*choices_nt
-        total += total_nt
-        proportions.append(total_nt)
+        choices_nt = mc_record.max_moves - (turn)
+        next_turn_states = proportions[-1]*prop_nt*choices_nt
+        total += next_turn_states
+        proportions.append(next_turn_states)
     normed_proportions = [proportion/total for proportion in proportions]
     return normed_proportions
 
