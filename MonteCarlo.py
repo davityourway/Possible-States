@@ -1,10 +1,6 @@
 import itertools
 import random as rand
 import copy
-import math
-import numpy as np
-import scipy as sp
-import matplotlib.pyplot as plt
 from typing import List, Tuple
 from math import factorial as fact
 
@@ -41,30 +37,33 @@ class MonteCarlo:
             if board_key in self.boards:
                 curr = self.boards[board_key]
             else:
-                terminal = self.check_move(curr.positions, move, curr.player) if game else True
+                terminal = self.check_terminal(curr.positions, move, curr.player) if game else True
                 curr = BoardState(new_player, new_pos, terminal)
                 self.boards[board_key] = curr
                 if curr.terminal:
                     self.term_states[depth] += 1
                 else:
                     self.non_term_states[depth] += 1
+        winner = "First" if curr.player == "Second" else "Second"
+        while depth < self.max_moves:
+
         self.avg_depth = (self.avg_depth*(self.games_played-1) + depth)/self.games_played
 
-    def check_move(self, positions: List[List[str]], move: Tuple[int,int], player: str):
+    def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         target = "1" if player == "First" else "2"
-        directions = [(1, 0, -1, 0), (0, 1, 0, -1), (1, 1, -1, -1), (-1, -1, -1, 1)]
+        directions = [(1, 0, -1, 0), (0, 1, 0, -1), (1, 1, -1, -1), (-1, 1, -1, 1)]
         totals = []
         for direction in directions:
             total = 1
             forward = 1
             backward = 1
             coordinate = (forward*direction[0]+move[0], forward*direction[1]+move[1])
-            while coordinate[0] < self.n and 0 <= coordinate[1] < self.m and positions[coordinate[0]][coordinate[1]] == target:
+            while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
                 total += 1
                 forward += 1
                 coordinate = (forward * direction[0] + move[0], forward * direction[1] + move[1])
             coordinate = (backward*direction[2]+move[0], backward*direction[3]+move[1])
-            while 0 <= coordinate[0] < self.n and 0 <= coordinate[1] < self.m and positions[coordinate[0]][coordinate[1]] == target:
+            while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
                 total += 1
                 backward += 1
                 coordinate = (backward * direction[2] + move[0], backward * direction[3] + move[1])
@@ -104,8 +103,6 @@ class MonteCarlo:
 
 
 class BoardState:
-    """
-    """
     def __init__(self, player: str, positions: List[List[str]], terminal=False):
         self.player = player
         self.positions = positions
@@ -139,6 +136,6 @@ def estimate_proportions(mc_record: 'MonteCarlo'):
 
 
 
-a = MonteCarlo(3, 3, 3)
-a.simulate_n_games(100000)
+a = MonteCarlo(4, 4, 9)
+a.simulate_n_games(500000)
 print(a.states_per_turn)
