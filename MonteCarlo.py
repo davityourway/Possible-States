@@ -31,10 +31,9 @@ class MonteCarlo:
 
     def play_game(self):
         """
-        plays a full game of and then continues sampling to ensure an unbiased sample at each timestep. We currently
-        treat terminal states and illegal states the same way in the second while loop when incrementing the terminal
-        state dictionary
-        :return:
+        plays a full game of and then continues sampling to ensure an unbiased sample of possible board states at
+        each timestep. We currently treat terminal states and illegal states the same way in the second while loop
+        when incrementing the terminal state dictionary :return:
         """
         game = rand.sample(self.all_positions, len(self.all_positions))
         curr = self.make_root(self.m, self.n)
@@ -141,7 +140,6 @@ class MonteCarlo:
                 print(self.term_states)
         self.update_non_term_estimate()
         print(self.non_term_estimate)
-
 
 
 class BoardState:
