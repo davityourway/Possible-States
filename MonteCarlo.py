@@ -24,7 +24,7 @@ class MonteCarlo:
         self.root = self.make_root(m, n)
         self.term_states = {x: 0 for x in range(1, n*m + 1)}
         self.non_term_states = {x: 1 for x in range(1, n*m + 1)}
-        self.illegal_states = {x:0 for x in range(1, n*m + 1)}
+        self.illegal_states = {x: 0 for x in range(1, n*m + 1)}
         self.avg_game_depth = 0
         self.games_played = 0
         self.states_per_turn = self.find_states_per_turn(n * m)
@@ -164,7 +164,6 @@ def estimate_proportions(mc_record: MonteCarlo):
     step is by multiplying that proportion by the number of possible choices. It assumes that no one can win on the
     first move
     """
-    total = 1
     proportions = [1]
     for turn in range(1, mc_record.max_moves):
         non_term = mc_record.non_term_states[turn]
