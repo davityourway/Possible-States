@@ -32,7 +32,7 @@ class MonteCarlo:
     def play_game(self):
         """
         plays a full game of and then continues sampling to ensure an unbiased sample of possible board states at
-        each timestep. We currently treat terminal states and illegal states the same way in the second while loop
+        each timestep. We currently treat terminal states and illegal states the same way
         when incrementing the terminal state dictionary :return:
         """
         game = rand.sample(self.all_positions, len(self.all_positions))
@@ -58,8 +58,6 @@ class MonteCarlo:
                 else:
                     self.non_term_states[depth] += 1
 
-
-
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
         checks if a state is terminal
@@ -73,20 +71,29 @@ class MonteCarlo:
         totals = []
         for direction in directions:
             total = 1
-            forward = 1
-            backward = 1
-            coordinate = (forward*direction[0]+move[0], forward*direction[1]+move[1])
-            while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
-                total += 1
-                forward += 1
-                coordinate = (forward * direction[0] + move[0], forward * direction[1] + move[1])
-            coordinate = (backward*direction[2]+move[0], backward*direction[3]+move[1])
-            while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
-                total += 1
-                backward += 1
-                coordinate = (backward * direction[2] + move[0], backward * direction[3] + move[1])
+            total += self.k_in_direction(move, (direction[0], direction[1]), positions, target)
+            total += self.k_in_direction(move, (direction[2], direction[3]), positions, target)
             totals.append(total)
         return True if max(totals) >= self.k else False
+
+    def k_in_direction(self, start: Tuple[int, int], direction: Tuple[int, int], positions: List[List[str]], target: str):
+        """
+        returns the number of a target letter in a row
+        :param start: non inclusive beginning of the search
+        :param direction: tuple defining direction of the search
+        :param positions: matrix representing the board state
+        :param target: the variable in a row we are looking for
+        :return: total number in a row in stipulated direction
+        """
+        increment = 1
+        total = 0
+        coordinate = (direction[0]*increment + start[0], direction[1]*increment + start[1])
+        while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
+            total += 1
+            increment += 1
+            coordinate = (direction[0] * increment + start[0], direction[1] * increment + start[1])
+        return total
+
 
     def make_root(self, m: int, n: int):
         """
