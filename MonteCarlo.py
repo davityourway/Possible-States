@@ -45,7 +45,7 @@ class MonteCarlo:
             new_pos = copy.deepcopy(curr.positions)
             new_player = "First" if curr.player == "Second" else "Second"
             new_pos[move[0]][move[1]] = "1" if curr.player == "First" else "2"
-            board_key = "".join(itertools.chain.from_iterable(new_pos+[[new_player]]))
+            board_key = "".join(itertools.chain.from_iterable(new_pos))
             if board_key in self.boards:
                 curr = self.boards[board_key]
             else:
@@ -116,7 +116,9 @@ class MonteCarlo:
 
     def find_states_per_turn(self, positions: int):
         """
-        determines how many possible states can come from each turn
+        determines how many possible states (of all kinds, even illegal) can come from each turn
+        using the forumla from https://psyarxiv.com/rhq5j pg.19 of Supplemental Material
+
         :param positions:
         :return: a list of the total number of states (terminal, non-terminal, and illegal) for each turn
         """
@@ -162,7 +164,7 @@ class BoardState:
         self.terminal = terminal
 
 
-def estimate_proportions(mc_record: 'MonteCarlo'):
+def estimate_proportions(mc_record: MonteCarlo):
     """
 
     :param mc_record:
