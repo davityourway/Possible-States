@@ -23,7 +23,7 @@ class MonteCarlo:
         self.all_positions = [(x, y) for x in range(m) for y in range(n)]
         self.root = self.make_root(m, n)
         self.term_states = {x: 0 for x in range(1, n*m + 1)}
-        self.non_term_states = {x: 1 for x in range(1, n*m + 1)}
+        self.non_term_states = {x: 0 for x in range(1, n*m + 1)}
         self.illegal_states = {x: 0 for x in range(1, n*m + 1)}
         self.avg_game_depth = 0
         self.games_played = 0
@@ -45,16 +45,23 @@ class MonteCarlo:
             move = game.pop()
             next_player = "First" if curr.player == "Second" else "Second"
             curr.positions[move[0]][move[1]] = "1" if curr.player == "First" else "2"
-            board_key = "".join(itertools.chain.from_iterable(curr.positions))
-            if board_key in self.boards:
-                curr.terminal = self.boards[board_key]
-            else:
-                terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
-                curr.terminal = terminal
-                self.boards[board_key] = curr.terminal
+            """ Alternative build where I memoize board states and their terminal status"""
+            # board_key = "".join(itertools.chain.from_iterable(curr.positions))
+            # if board_key in self.boards:
+            #     curr.terminal = self.boards[board_key]
+            # else:
+            #     terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
+            #     curr.terminal = terminal
+            #     self.boards[board_key] = curr.terminal
+            terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
+            curr.terminal = terminal
             curr.player = next_player
             if curr.terminal:
                 self.term_states[depth] += 1
+                while game:
+                    depth += 1
+                    game.pop()
+                    self.term_states[depth] += 1
             else:
                 self.non_term_states[depth] += 1
 
@@ -170,14 +177,6 @@ def estimate_proportions(mc_record: MonteCarlo):
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
         proportions.append(prop_nt)
-        """
-        These are leftovers from an estimation of state size that I was going to try to extrapolate out. I'm going to
-        leave it for now but it should probably just be tossed
-        """
-        # choices_nt = mc_record.max_moves - turn
-        # next_turn_states = proportions[-1]*prop_nt*choices_nt
-        # total += next_turn_states
-        # proportions.append(next_turn_states)
     return proportions
 
 
@@ -186,6 +185,7 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 a = MonteCarlo(4, 4, 9)
-a.simulate_n_games(100000)
+a.simulate_n_games(10000000)
+# current best estimate at 10e6 samples per turn is 1.3312354544798618e+16
 print(a.states_per_turn)
 print(sum([a.states_per_turn[x] for x in range(1,10)]))
