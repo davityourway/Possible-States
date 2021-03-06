@@ -2,7 +2,7 @@ import itertools
 import random as rand
 import copy
 from typing import List, Tuple
-from math import factorial as fact
+from math import factorial
 
 
 class MonteCarlo:
@@ -31,47 +31,34 @@ class MonteCarlo:
 
     def play_game(self):
         """
-        plays a full game of and then continue sampling to ensure an unbiased sample at each timestep. We currently
-        treat terminal states and illegal states the same way in the second while loop
+        plays a full game of and then continues sampling to ensure an unbiased sample at each timestep. We currently
+        treat terminal states and illegal states the same way in the second while loop when incrementing the terminal
+        state dictionary
         :return:
         """
         game = rand.sample(self.all_positions, len(self.all_positions))
-        curr = self.root
+        curr = self.make_root(self.m, self.n)
         self.games_played += 1
         depth = 0
-        while not (curr.terminal or depth > self.max_moves):
+        while depth < self.max_moves:
             depth += 1
             move = game.pop()
-            new_pos = copy.deepcopy(curr.positions)
-            new_player = "First" if curr.player == "Second" else "Second"
-            new_pos[move[0]][move[1]] = "1" if curr.player == "First" else "2"
-            board_key = "".join(itertools.chain.from_iterable(new_pos))
+            next_player = "First" if curr.player == "Second" else "Second"
+            curr.positions[move[0]][move[1]] = "1" if curr.player == "First" else "2"
+            board_key = "".join(itertools.chain.from_iterable(curr.positions))
             if board_key in self.boards:
-                curr = self.boards[board_key]
+                curr.terminal = self.boards[board_key]
+                curr.player = next_player
             else:
-                terminal = self.check_terminal(curr.positions, move, curr.player) if game else True
-                curr = BoardState(new_player, new_pos, terminal)
-                self.boards[board_key] = curr
+                terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
+                curr.terminal = terminal
+                curr.player = next_player
+                self.boards[board_key] = curr.terminal
                 if curr.terminal:
                     self.term_states[depth] += 1
                 else:
                     self.non_term_states[depth] += 1
-        self.avg_game_depth = (self.avg_game_depth * (self.games_played - 1) + depth) / self.games_played
-        winner = "First" if curr.player == "Second" else "Second"
-        while depth < self.max_moves:
-            depth += 1
-            move = game.pop()
-            new_pos = copy.deepcopy(curr.positions)
-            new_player = "First" if curr.player == "Second" else "Second"
-            new_pos[move[0]][move[1]] = "1" if curr.player == "First" else "2"
-            board_key = "".join(itertools.chain.from_iterable(new_pos+[[new_player]]))
-            if board_key in self.boards:
-                curr = self.boards[board_key]
-            else:
-                curr = BoardState(new_player, new_pos, True)
-                self.boards[board_key] = curr
-                self.term_states[depth] += 1
-            # write second check function
+
 
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
@@ -105,13 +92,13 @@ class MonteCarlo:
     def make_root(self, m: int, n: int):
         """
         Generates the base state of the game
-        :param m:
-        :param n:
+        :param m: rows
+        :param n: columns
         :return:
         """
         positions = [["0" for _ in range(n)] for row in range(m)]
         root = BoardState("First", positions)
-        self.boards[("".join(itertools.chain.from_iterable(positions+[["First"]])))] = root
+        self.boards[("".join(itertools.chain.from_iterable(positions)))] = root
         return root
 
     def find_states_per_turn(self, positions: int):
@@ -119,14 +106,14 @@ class MonteCarlo:
         determines how many possible states (of all kinds, even illegal) can come from each turn
         using the forumla from https://psyarxiv.com/rhq5j pg.19 of Supplemental Material
 
-        :param positions:
+        :param positions: total number of positions that can be filled
         :return: a list of the total number of states (terminal, non-terminal, and illegal) for each turn
         """
         totals = {x: 0 for x in range(1, positions+1)}
         for turn in range(1, positions+1):
             m = turn//2
             n = turn - m
-            totals[turn] = fact(positions) / (fact(n)*fact(m)*fact(positions-turn))
+            totals[turn] = factorial(positions) / (factorial(n) * factorial(m) * factorial(positions - turn))
         return totals
 
     def update_non_term_estimate(self):
@@ -179,11 +166,15 @@ def estimate_proportions(mc_record: MonteCarlo):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
+        proportions.append(prop_nt)
+        """
+        These are leftovers from an estimation of state size that I was going to try to extrapolate out. I'm going to
+        leave it for now but it should probably just be tossed
+        """
         # choices_nt = mc_record.max_moves - turn
         # next_turn_states = proportions[-1]*prop_nt*choices_nt
         # total += next_turn_states
         # proportions.append(next_turn_states)
-        proportions.append(prop_nt)
     return proportions
 
 
@@ -192,5 +183,6 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 a = MonteCarlo(4, 4, 9)
-a.simulate_n_games(10000)
+a.simulate_n_games(100000)
 print(a.states_per_turn)
+print(sum([a.states_per_turn[x] for x in range(1,10)]))
