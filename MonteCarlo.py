@@ -1,6 +1,5 @@
 import itertools
 import random as rand
-import copy
 from typing import List, Tuple
 from math import factorial
 
@@ -9,6 +8,8 @@ class MonteCarlo:
 
     def __init__(self, k: int, m: int, n: int):
         """
+        MonteCarlo stores the results of the simulation and sampling on the object while keeping a dictionary of states
+        encoded in strings to prevent double counting
 
         :param k: k in a row, column, or diagonal to reach a terminal state
         :param m: number of rows
@@ -47,16 +48,15 @@ class MonteCarlo:
             board_key = "".join(itertools.chain.from_iterable(curr.positions))
             if board_key in self.boards:
                 curr.terminal = self.boards[board_key]
-                curr.player = next_player
             else:
                 terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
                 curr.terminal = terminal
-                curr.player = next_player
                 self.boards[board_key] = curr.terminal
-                if curr.terminal:
-                    self.term_states[depth] += 1
-                else:
-                    self.non_term_states[depth] += 1
+            curr.player = next_player
+            if curr.terminal:
+                self.term_states[depth] += 1
+            else:
+                self.non_term_states[depth] += 1
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
@@ -67,7 +67,7 @@ class MonteCarlo:
         :return: returns whether or not there is a sequence greater than or equal to k that comes from making the move
         """
         target = "1" if player == "First" else "2"
-        directions = [(1, 0, -1, 0), (0, 1, 0, -1), (1, 1, -1, -1), (-1, 1, -1, 1)]
+        directions = [(1, 0, -1, 0), (0, 1, 0, -1), (1, 1, -1, -1), (-1, 1, 1, -1)]
         totals = []
         for direction in directions:
             total = 1
@@ -94,16 +94,15 @@ class MonteCarlo:
             coordinate = (direction[0] * increment + start[0], direction[1] * increment + start[1])
         return total
 
-
     def make_root(self, m: int, n: int):
         """
         Generates the base state of the game
         :param m: rows
         :param n: columns
-        :return:
+        :return: BoardState object with empty board
         """
         positions = [["0" for _ in range(n)] for row in range(m)]
-        root = BoardState("First", positions)
+        root = BoardState("First", positions, False)
         self.boards[("".join(itertools.chain.from_iterable(positions)))] = root
         return root
 
@@ -141,7 +140,7 @@ class MonteCarlo:
         """
         for i in range(n):
             self.play_game()
-            if not i%500:
+            if not i % 5000:
                 print(len(self.boards), self.avg_game_depth)
                 print(self.non_term_states)
                 print(self.term_states)
@@ -160,7 +159,7 @@ def estimate_proportions(mc_record: MonteCarlo):
     """
 
     :param mc_record:
-    :return:
+    :return: array of the proportion of states at each time step
     Uses the proportion of non-terminal states at each step to estimate how much larger the search space in the next
     step is by multiplying that proportion by the number of possible choices. It assumes that no one can win on the
     first move
