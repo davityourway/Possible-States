@@ -76,7 +76,7 @@ class MonteCarlo:
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
-        checks if a state is non terminal
+        checks if a state is terminal
         :param positions: matrix of positions
         :param move: coordinate of move to be made next
         :param player: 1st or 2nd player
@@ -192,5 +192,5 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 a = MonteCarlo(4, 4, 9)
-a.simulate_n_games(500000)
+a.simulate_n_games(10000)
 print(a.states_per_turn)
