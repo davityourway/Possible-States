@@ -49,8 +49,17 @@ class MonteCarlo:
         winner = "First" if curr.player == "Second" else "Second"
         while depth < self.max_moves:
             depth += 1
-            game.pop()
-            self.term_states[depth] += 1
+            move = game.pop()
+            new_pos = copy.deepcopy(curr.positions)
+            new_player = "First" if curr.player == "Second" else "Second"
+            new_pos[move[0]][move[1]] = "1" if curr.player == "First" else "2"
+            board_key = "".join(itertools.chain.from_iterable(new_pos+[[new_player]]))
+            if board_key in self.boards:
+                curr = self.boards[board_key]
+            else:
+                curr = BoardState(new_player, new_pos, True)
+                self.boards[board_key] = curr
+                self.term_states[depth] += 1
             # write second check function
 
 
