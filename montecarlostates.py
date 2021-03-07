@@ -136,7 +136,7 @@ class MonteCarlo:
         proportions = estimate_proportions(self)
         self.non_term_estimate = 0
         for turn in range(1, self.max_moves+1):
-            self.non_term_estimate += proportions[turn-1] * self.states_per_turn[turn]
+            self.non_term_estimate += proportions[turn] * self.states_per_turn[turn]
 
     def simulate_n_games(self, n: int):
         """
@@ -147,13 +147,13 @@ class MonteCarlo:
         """
 
         for i in range(n):
-            if not i % 5000:
-                print(self.samples_generated)
-                print(self.non_term_states)
-                print(self.term_states)
+            # if not i % 5000:
+                # print(self.samples_generated)
+                # print(self.non_term_states)
+                # print(self.term_states)
             if i > 1 and not (i % 25000):
                 self.update_non_term_estimate()
-                print(self.non_term_states)
+                print(self.non_term_estimate)
             self.play_game()
         self.update_non_term_estimate()
         print(self.non_term_estimate)
@@ -174,7 +174,7 @@ def estimate_proportions(mc_record: MonteCarlo):
     Gives the proportion of non-terminal states at each step in an array, which can be used as a probability estimate
     """
     proportions = [1]
-    for turn in range(1, mc_record.max_moves):
+    for turn in range(1, mc_record.max_moves+1):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
         prop_nt = non_term/(term+non_term)
@@ -187,6 +187,16 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 a = MonteCarlo(4, 4, 9)
-a.simulate_n_games(100000)
+a.simulate_n_games(1000000)
 # current best estimate at 1e7 samples per timestep is 1.3312354544798618e+16
-
+# print(estimate_proportions(a))
+# positions = 4
+# n = 1
+# m = 0
+# turn = 1
+# print(factorial(positions) / (factorial(n) * factorial(m) * factorial(positions - turn)))
+# positions = 4
+# n = 1
+# m = 1
+# turn = 2
+# print(factorial(positions) / (factorial(n) * factorial(m) * factorial(positions - turn)))
