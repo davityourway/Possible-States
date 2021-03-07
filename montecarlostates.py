@@ -186,17 +186,7 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 
-a = MonteCarlo(3, 3, 3)
+a = MonteCarlo(4, 4, 9)
 a.simulate_n_games(100000)
 # current best estimate at 1e7 samples per timestep is 1.3312354544798618e+16
-# print(a.states_per_turn)
-# statelist = [1, 28]
-# for k in range(3, 30):
-#     print("Now on")
-#     print(k)
-#     a = MonteCarlo(k, k, k)
-#     a.simulate_n_games(10000)
-#     statelist.append(a.non_term_estimate)
-#
-# print(statelist)
 
