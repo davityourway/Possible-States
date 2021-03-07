@@ -24,9 +24,9 @@ class MonteCarlo:
         self.root = self.make_root(m, n)
         self.term_states = {x: 0 for x in range(1, n*m + 1)}
         self.non_term_states = {x: 0 for x in range(1, n*m + 1)}
-        self.illegal_states = {x: 0 for x in range(1, n*m + 1)}
-        self.avg_game_depth = 0
-        self.games_played = 0
+        # self.illegal_states = {x: 0 for x in range(1, n*m + 1)}
+        # self.avg_game_depth = 0
+        self.samples_generated = 0
         self.states_per_turn = self.find_states_per_turn(n * m)
         self.non_term_estimate = 0
 
@@ -38,7 +38,7 @@ class MonteCarlo:
         """
         game = rand.sample(self.all_positions, len(self.all_positions))
         curr = self.make_root(self.m, self.n)
-        self.games_played += 1
+        self.samples_generated += 1
         depth = 0
         while depth < self.max_moves:
             depth += 1
@@ -78,12 +78,12 @@ class MonteCarlo:
         totals = []
         for direction in directions:
             total = 1
-            total += self.k_in_direction(move, (direction[0], direction[1]), positions, target)
-            total += self.k_in_direction(move, (direction[2], direction[3]), positions, target)
+            total += self.target_in_direction(move, (direction[0], direction[1]), positions, target)
+            total += self.target_in_direction(move, (direction[2], direction[3]), positions, target)
             totals.append(total)
         return True if max(totals) >= self.k else False
 
-    def k_in_direction(self, start: Tuple[int, int], direction: Tuple[int, int], positions: List[List[str]], target: str):
+    def target_in_direction(self, start: Tuple[int, int], direction: Tuple[int, int], positions: List[List[str]], target: str):
         """
         returns the number of a target letter in a row
         :param start: non inclusive beginning of the search
@@ -145,12 +145,16 @@ class MonteCarlo:
         :param n:
         :return:
         """
+
         for i in range(n):
-            self.play_game()
             if not i % 5000:
-                print(len(self.boards), self.avg_game_depth)
+                print(self.samples_generated)
                 print(self.non_term_states)
                 print(self.term_states)
+            if i > 1 and not (i % 25000):
+                self.update_non_term_estimate()
+                print(self.non_term_states)
+            self.play_game()
         self.update_non_term_estimate()
         print(self.non_term_estimate)
 
@@ -167,9 +171,7 @@ def estimate_proportions(mc_record: MonteCarlo):
 
     :param mc_record:
     :return: array of the proportion of states at each time step
-    Uses the proportion of non-terminal states at each step to estimate how much larger the search space in the next
-    step is by multiplying that proportion by the number of possible choices. It assumes that no one can win on the
-    first move
+    Gives the proportion of non-terminal states at each step in an array, which can be used as a probability estimate
     """
     proportions = [1]
     for turn in range(1, mc_record.max_moves):
@@ -184,8 +186,17 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 
-a = MonteCarlo(4, 4, 9)
-a.simulate_n_games(10000000)
-# current best estimate at 10e6 samples per turn is 1.3312354544798618e+16
-print(a.states_per_turn)
-print(sum([a.states_per_turn[x] for x in range(1,10)]))
+a = MonteCarlo(3, 3, 3)
+a.simulate_n_games(100000)
+# current best estimate at 1e7 samples per timestep is 1.3312354544798618e+16
+# print(a.states_per_turn)
+# statelist = [1, 28]
+# for k in range(3, 30):
+#     print("Now on")
+#     print(k)
+#     a = MonteCarlo(k, k, k)
+#     a.simulate_n_games(10000)
+#     statelist.append(a.non_term_estimate)
+#
+# print(statelist)
+
