@@ -1,6 +1,6 @@
 import itertools
 import random as rand
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from math import factorial
 
 
@@ -45,25 +45,17 @@ class MonteCarlo:
             move = game.pop()
             next_player = "First" if curr.player == "Second" else "Second"
             curr.positions[move[0]][move[1]] = "1" if curr.player == "First" else "2"
-            """ Alternative build where I memoize board states and their terminal status"""
-            # board_key = "".join(itertools.chain.from_iterable(curr.positions))
-            # if board_key in self.boards:
-            #     curr.terminal = self.boards[board_key]
-            # else:
-            #     terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
-            #     curr.terminal = terminal
-            #     self.boards[board_key] = curr.terminal
-            terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
-            curr.terminal = terminal
-            curr.player = next_player
-            if curr.terminal:
-                self.term_states[depth] += 1
-                while game:
-                    depth += 1
-                    game.pop()
+            if not curr.terminal:
+                curr.terminal = self.check_terminal(curr.positions, move, curr.player) if not curr.terminal else True
+                curr.player = next_player
+                if curr.terminal:
                     self.term_states[depth] += 1
+                    winner = "First" if curr.player == "Second" else "Second"
+                    win_move = move
+                else:
+                    self.non_term_states[depth] += 1
             else:
-                self.non_term_states[depth] += 1
+                illegal
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
@@ -78,8 +70,9 @@ class MonteCarlo:
         totals = []
         for direction in directions:
             total = 1
-            total += self.target_in_direction(move, (direction[0], direction[1]), positions, target)
-            total += self.target_in_direction(move, (direction[2], direction[3]), positions, target)
+            fcount, fset = self.target_in_direction(move, (direction[0], direction[1]), positions, target)
+            bcount, bset = self.target_in_direction(move, (direction[2], direction[3]), positions, target)
+            total += fcount + bcount
             totals.append(total)
         return True if max(totals) >= self.k else False
 
@@ -95,11 +88,13 @@ class MonteCarlo:
         increment = 1
         total = 0
         coordinate = (direction[0]*increment + start[0], direction[1]*increment + start[1])
+        checked = {coordinate}
         while 0 <= coordinate[0] < self.m and 0 <= coordinate[1] < self.n and positions[coordinate[0]][coordinate[1]] == target:
             total += 1
             increment += 1
             coordinate = (direction[0] * increment + start[0], direction[1] * increment + start[1])
-        return total
+            checked.add(coordinate)
+        return total, checked
 
     def make_root(self, m: int, n: int):
         """
@@ -109,7 +104,7 @@ class MonteCarlo:
         :return: BoardState object with empty board
         """
         positions = [["0" for _ in range(n)] for row in range(m)]
-        root = BoardState("First", positions, False)
+        root = BoardState("First", positions, False, True)
         self.boards[("".join(itertools.chain.from_iterable(positions)))] = root
         return root
 
@@ -135,7 +130,7 @@ class MonteCarlo:
         """
         proportions = estimate_proportions(self)
         self.non_term_estimate = 0
-        for turn in range(1, self.max_moves+1):
+        for turn in range(1, self.max_moves):
             self.non_term_estimate += proportions[turn] * self.states_per_turn[turn]
 
     def simulate_n_games(self, n: int):
@@ -160,10 +155,11 @@ class MonteCarlo:
 
 
 class BoardState:
-    def __init__(self, player: str, positions: List[List[str]], terminal=False):
+    def __init__(self, player: str, positions: List[List[str]], terminal: Optional[bool] = False, legal: Optional[bool] = True):
         self.player = player
         self.positions = positions
         self.terminal = terminal
+        self.legal = legal
 
 
 def estimate_proportions(mc_record: MonteCarlo):
@@ -185,9 +181,9 @@ def estimate_proportions(mc_record: MonteCarlo):
 
 
 
-
 a = MonteCarlo(4, 4, 9)
 a.simulate_n_games(1000000)
+
 # current best estimate at 1e7 samples per timestep is 1.3312354544798618e+16
 # print(estimate_proportions(a))
 # positions = 4
