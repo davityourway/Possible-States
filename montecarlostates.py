@@ -65,10 +65,8 @@ class MonteCarlo:
                     _, win_set = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
                 else:
                     self.non_term_states[depth] += 1
-                curr.player = next_player
             else:
                 curr.legal, win_set = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
-                curr.player = next_player
                 if not curr.legal:
                     self.illegal_states[depth] += 1
                     while game:
@@ -77,6 +75,8 @@ class MonteCarlo:
                         self.illegal_states[depth] += 1
                 else:
                     self.term_states[depth] += 1
+            curr.player = next_player
+
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
@@ -120,13 +120,13 @@ class MonteCarlo:
             if total >= self.k:
                 win_sample = win_list[0]
                 if total >= self.k*2 or target != positions[win_sample[0]][win_sample[1]]:
-                    return False, None
+                    return False, set()
                 bchecked.reverse()
                 new_win_list = bchecked + [move] + fchecked
                 new_win_junctions = find_legal_junctions(new_win_list, self.k)
                 win_intersection = new_win_junctions.intersection(win_set)
                 if not win_intersection:
-                    return False, None
+                    return False, set()
                 win_set = win_intersection
         return True, win_set
 
