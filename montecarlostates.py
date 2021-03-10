@@ -96,12 +96,14 @@ class MonteCarlo:
 
     def check_legal(self, positions: List[List[str]], move: Tuple[int, int], win_list: List, win_set: Set, player: str):
         """
-        function checks the legality by searching for a winning combination that is either larger than the maximum length
-        (k*2 - 1) or does not contain the original winning move (which would create two independent win states on the
-        board).
+        function checks the legality by searching for a winning combination that branches off the most recent sample. IF
+        it find one it asks if that sample intersects the original win at a valid node or nodes. If it does, it sets the
+        valid win set to that intersection and returns True, otherwise it returns false. There are some earlier checks
+        that curtail the search space using some simpler heuristics to improve speed
         :param positions:
         :param move:
         :param win_list:
+        :param win_set:
         :param player:
         :return:
         """
@@ -265,8 +267,8 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 if __name__ == '__main__':
 
-    a = MonteCarlo(4, 4, 9)
-    a.simulate_n_games(100000)
+    a = MonteCarlo(4, 10, 10)
+    a.simulate_n_games(300000)
     print(estimate_nonterm_proportions(a))
     print(estimate_term_proportions(a))
     print(estimate_illegal_proportions(a))
