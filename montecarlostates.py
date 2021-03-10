@@ -57,12 +57,13 @@ class MonteCarlo:
             curr.positions[move[0]][move[1]] = "1" if curr.player == "First" else "2"
             if not curr.terminal:
                 curr.terminal, win_list = self.check_terminal(curr.positions, move, curr.player)
-                curr.player = next_player
                 if curr.terminal:
                     self.term_states[depth] += 1
                     win_set = find_legal_junctions(win_list, self.k)
+                    self.check_legal(curr.positions, move, win_list, win_set, curr.player)
                 else:
                     self.non_term_states[depth] += 1
+                curr.player = next_player
             else:
                 curr.legal = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
                 curr.player = next_player
@@ -264,7 +265,7 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 if __name__ == '__main__':
 
-    a = MonteCarlo(5, 10, 10)
+    a = MonteCarlo(4, 4, 9)
     a.simulate_n_games(100000)
     print(estimate_nonterm_proportions(a))
     print(estimate_term_proportions(a))
