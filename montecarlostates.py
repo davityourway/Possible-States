@@ -2,6 +2,8 @@ import itertools
 import random as rand
 from typing import List, Tuple, Optional, Set
 from math import factorial
+from scipy.stats import sem
+
 
 
 def find_legal_junctions(win_list: List[Tuple[int, int]], k: int):
@@ -15,7 +17,7 @@ def find_legal_junctions(win_list: List[Tuple[int, int]], k: int):
 
 class MonteCarlo:
 
-    def __init__(self, k: int, m: int, n: int):
+    def __init__(self, m: int, n: int, k: int):
         """
         MonteCarlo stores the results of the simulation and sampling on the object while keeping a dictionary of states
         encoded in strings to prevent double counting
@@ -60,12 +62,12 @@ class MonteCarlo:
                 if curr.terminal:
                     self.term_states[depth] += 1
                     win_set = find_legal_junctions(win_list, self.k)
-                    self.check_legal(curr.positions, move, win_list, win_set, curr.player)
+                    _, win_set = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
                 else:
                     self.non_term_states[depth] += 1
                 curr.player = next_player
             else:
-                curr.legal = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
+                curr.legal, win_set = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
                 curr.player = next_player
                 if not curr.legal:
                     self.illegal_states[depth] += 1
@@ -91,6 +93,7 @@ class MonteCarlo:
             fcount, fchecked = self.target_in_direction(move, (direction[0], direction[1]), positions, target)
             bcount, bchecked = self.target_in_direction(move, (direction[2], direction[3]), positions, target)
             if total + fcount + bcount >= self.k:
+                bchecked.reverse()
                 return True, bchecked + [move] + fchecked
         return False, []
 
@@ -98,8 +101,8 @@ class MonteCarlo:
         """
         function checks the legality by searching for a winning combination that branches off the most recent sample. IF
         it find one it asks if that sample intersects the original win at a valid node or nodes. If it does, it sets the
-        valid win set to that intersection and returns True, otherwise it returns false. There are some earlier checks
-        that curtail the search space using some simpler heuristics to improve speed
+        valid win set to that intersection and returns True and the intersection, otherwise it returns false. There are
+        some earlier checks that curtail the search space using some simpler heuristics to improve speed
         :param positions:
         :param move:
         :param win_list:
@@ -117,14 +120,15 @@ class MonteCarlo:
             if total >= self.k:
                 win_sample = win_list[0]
                 if total >= self.k*2 or target != positions[win_sample[0]][win_sample[1]]:
-                    return False
+                    return False, None
+                bchecked.reverse()
                 new_win_list = bchecked + [move] + fchecked
                 new_win_junctions = find_legal_junctions(new_win_list, self.k)
-                win_intersection = new_win_junctions & win_set
+                win_intersection = new_win_junctions.intersection(win_set)
                 if not win_intersection:
-                    return False
+                    return False, None
                 win_set = win_intersection
-        return True
+        return True, win_set
 
     def target_in_direction(self, start: Tuple[int, int], direction: Tuple[int, int], positions: List[List[str]],
                             target: str, win_move: Optional[Tuple[int, int]] = None):
@@ -266,9 +270,20 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 
 if __name__ == '__main__':
-
-    a = MonteCarlo(4, 10, 10)
-    a.simulate_n_games(300000)
+    # with open('4x9k4results.txt', 'a') as f:
+    #     f.write("Test for 4x9 k=4 \n")
+    # estimates = []
+    # for i in range(10):
+    a = MonteCarlo(4, 9, 4)
+    a.simulate_n_games(1000000)
+    estimate = a.non_term_estimate
+        # estimates.append(estimate)
+    #     with open('4x9k4results.txt', 'a') as f:
+    #         f.write(f"{estimate} \n")
+    # mean = sum(estimates)/len(estimates)
+    # sterror = sem(estimates)
+    # with open('4x9k4results.txt', 'a') as f:
+    #     f.write(f"\nMean:{mean} \n Standard Error: {sterror}")
     print(estimate_nonterm_proportions(a))
     print(estimate_term_proportions(a))
     print(estimate_illegal_proportions(a))
