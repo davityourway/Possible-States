@@ -192,7 +192,7 @@ class MonteCarlo:
         """
         proportions = estimate_nonterm_proportions(self)
         self.non_term_estimate = 0
-        for turn in range(1, self.max_moves):
+        for turn in range(1, self.max_moves+1):
             self.non_term_estimate += proportions[turn] * self.states_per_turn[turn]
 
     def update_term_estimate(self):
@@ -202,7 +202,7 @@ class MonteCarlo:
         """
         proportions = estimate_term_proportions(self)
         self.term_estimate = 0
-        for turn in range(1, self.max_moves):
+        for turn in range(1, self.max_moves+1):
             self.term_estimate += proportions[turn] * self.states_per_turn[turn]
 
     def update_illegal_estimate(self):
@@ -212,7 +212,7 @@ class MonteCarlo:
         """
         proportions = estimate_illegal_proportions(self)
         self.illegal_estimate = 0
-        for turn in range(1, self.max_moves):
+        for turn in range(1, self.max_moves+1):
             self.illegal_estimate += proportions[turn] * self.states_per_turn[turn]
 
     def simulate_n_games(self, n: int):
@@ -297,9 +297,9 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 
 if __name__ == '__main__':
-    # k = 4
-    # m = 4
-    # n = 9
+    k = 4
+    m = 4
+    n = 9
     runs = 2
     samples = 100000
     #
@@ -318,6 +318,9 @@ if __name__ == '__main__':
     #
     for size in range(3, 4):
         k = m = n = size
+        k = 4
+        m = 4
+        n = 9
         with open(f'squareresults.txt', 'a') as f:
     # with open(f'{m}x{n}k{k}results.txt', 'a') as f:
             f.write(f"\n\n\nTest for {m}x{n} k={k}: \n")
