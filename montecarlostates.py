@@ -297,11 +297,11 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 
 if __name__ == '__main__':
-    k = 4
-    m = 4
-    n = 9
-    runs = 2
-    samples = 100000
+    # k = 4
+    # m = 4
+    # n = 9
+    runs = 15
+    samples = 1000000
     #
     # for _ in range(2):
     #     a = MonteCarlo(m, n, k)
@@ -316,15 +316,12 @@ if __name__ == '__main__':
     term_sterrors = [0, 0]
     illegal_sterrors = [0, 0]
     #
-    for size in range(3, 4):
+    for size in range(2, 16):
         k = m = n = size
-        k = 4
-        m = 4
-        n = 9
         with open(f'squareresults.txt', 'a') as f:
     # with open(f'{m}x{n}k{k}results.txt', 'a') as f:
             f.write(f"\n\n\nTest for {m}x{n} k={k}: \n")
-            f.write(f"{runs} runs and {samples} samples \n\n ")
+            f.write(f"{runs} runs and {samples} samples \n\n")
             non_term_estimates = []
             term_estimates = []
             illegal_estimates = []
