@@ -63,8 +63,11 @@ class MonteCarlo:
 
     def play_game(self):
         """
-        plays a full game until we reach a terminal state, after which we check each state for its legality. If a state
-        has an illegal configuration we pop the game stack and increment the illegal states dictionary by one for each
+        plays a full game until we reach a terminal state, after which we check each state for its legality. There are
+        two types of illegal states. After a player wins, every subsequent move from the other player causes
+        a state that could not have happened (i.e. where a win is on the board for X and it is X to move).
+        A simple player check determines that. If a move by the winning player creates an illegal configuration
+        which we find with check_legal, we pop the game stack and increment the illegal states dictionary by one for each
         subsequent turn
          :return:
         """
