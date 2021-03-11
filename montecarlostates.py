@@ -80,6 +80,7 @@ class MonteCarlo:
             if not curr.terminal:
                 curr.terminal, win_list = self.check_terminal(curr.positions, move, curr.player)
                 if curr.terminal:
+                    winner = curr.player
                     self.term_states[depth] += 1
                     win_set = find_legal_junctions(win_list, self.k)
                     _, win_set = self.check_legal(curr.positions, move, win_list, win_set, curr.player)
@@ -93,8 +94,10 @@ class MonteCarlo:
                         depth += 1
                         game.pop()
                         self.illegal_states[depth] += 1
-                else:
+                elif curr.player == winner:
                     self.term_states[depth] += 1
+                else:
+                    self.illegal_states[depth] += 1
             curr.player = next_player
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
@@ -297,14 +300,14 @@ if __name__ == '__main__':
     # k = 4
     # m = 4
     # n = 9
-    runs = 50
-    samples = 10000
-
-    # for _ in range(20):
+    runs = 2
+    samples = 100000
+    #
+    # for _ in range(2):
     #     a = MonteCarlo(m, n, k)
-    #     a.simulate_n_games(1000000)
+    #     a.simulate_n_games(100000)
+    #     print(_)
 
-    # with open(f'{m}x{n}k{k}results.txt', 'a') as f:
 
     nonterm_means = [1, 1]
     term_means = [0, 1]
@@ -312,10 +315,11 @@ if __name__ == '__main__':
     nonterm_sterrors = [0, 0]
     term_sterrors = [0, 0]
     illegal_sterrors = [0, 0]
-
+    #
     for size in range(3, 4):
         k = m = n = size
         with open(f'squareresults.txt', 'a') as f:
+    # with open(f'{m}x{n}k{k}results.txt', 'a') as f:
             f.write(f"\n\n\nTest for {m}x{n} k={k}: \n")
             f.write(f"{runs} runs and {samples} samples \n\n ")
             non_term_estimates = []
@@ -391,6 +395,6 @@ if __name__ == '__main__':
         f.write(f'\n\nillegal_means = {illegal_means}')
         f.write(f'\n\nillegal_means = {illegal_sterrors}')
 
-
-
-
+    #
+    #
+    #
