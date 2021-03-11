@@ -15,6 +15,23 @@ def find_legal_junctions(win_list: List[Tuple[int, int]], k: int):
         return set(win_list[distance_from_end:-distance_from_end])
 
 
+def find_states_per_turn(positions: int):
+    """
+    determines how many possible states (of all kinds, even illegal) can come from each turn
+    using the forumla from https://psyarxiv.com/rhq5j pg.19 of Supplemental Material
+
+    :param positions: total number of positions that can be filled
+    :return: a list of the total number of states (terminal, non-terminal, and illegal) for each turn
+    """
+    totals = {x: 0 for x in range(positions+1)}
+    totals[0] = 1
+    for turn in range(1, positions+1):
+        m = turn//2
+        n = turn - m
+        totals[turn] = factorial(positions) / (factorial(n) * factorial(m) * factorial(positions - turn))
+    return totals
+
+
 class MonteCarlo:
 
     def __init__(self, m: int, n: int, k: int):
@@ -33,13 +50,16 @@ class MonteCarlo:
         self.boards = {}
         self.all_positions = [(x, y) for x in range(m) for y in range(n)]
         self.root = self.make_root(m, n)
-        self.term_states = {x: 0 for x in range(1, n*m + 1)}
-        self.non_term_states = {x: 0 for x in range(1, n*m + 1)}
-        self.illegal_states = {x: 0 for x in range(1, n*m + 1)}
+        self.term_states = {x: 0 for x in range(n*m + 1)}
+        self.non_term_states = {x: 0 for x in range(n*m + 1)}
+        self.illegal_states = {x: 0 for x in range(n*m + 1)}
         # self.avg_game_depth = 0
         self.samples_generated = 0
-        self.states_per_turn = self.find_states_per_turn(n * m)
+        self.states_per_turn = find_states_per_turn(n * m)
         self.non_term_estimate = 0
+        self.term_estimate = 0
+        self.illegal_estimate = 0
+        self.non_term_states[0] = 1.0
 
     def play_game(self):
         """
@@ -76,7 +96,6 @@ class MonteCarlo:
                 else:
                     self.term_states[depth] += 1
             curr.player = next_player
-
 
     def check_terminal(self, positions: List[List[str]], move: Tuple[int, int], player: str):
         """
@@ -163,21 +182,6 @@ class MonteCarlo:
         self.boards[("".join(itertools.chain.from_iterable(positions)))] = root
         return root
 
-    def find_states_per_turn(self, positions: int):
-        """
-        determines how many possible states (of all kinds, even illegal) can come from each turn
-        using the forumla from https://psyarxiv.com/rhq5j pg.19 of Supplemental Material
-
-        :param positions: total number of positions that can be filled
-        :return: a list of the total number of states (terminal, non-terminal, and illegal) for each turn
-        """
-        totals = {x: 0 for x in range(1, positions+1)}
-        for turn in range(1, positions+1):
-            m = turn//2
-            n = turn - m
-            totals[turn] = factorial(positions) / (factorial(n) * factorial(m) * factorial(positions - turn))
-        return totals
-
     def update_non_term_estimate(self):
         """
         calculates an estimate of the total number of non-terminal states, updates the object parameter
@@ -188,6 +192,26 @@ class MonteCarlo:
         for turn in range(1, self.max_moves):
             self.non_term_estimate += proportions[turn] * self.states_per_turn[turn]
 
+    def update_term_estimate(self):
+        """
+        calculates an estimate of the total number of terminal states, updates the object parameter
+        :return:
+        """
+        proportions = estimate_term_proportions(self)
+        self.term_estimate = 0
+        for turn in range(1, self.max_moves):
+            self.term_estimate += proportions[turn] * self.states_per_turn[turn]
+
+    def update_illegal_estimate(self):
+        """
+        calculates an estimate of the total number of illegal states, updates the object parameter
+        :return:
+        """
+        proportions = estimate_illegal_proportions(self)
+        self.illegal_estimate = 0
+        for turn in range(1, self.max_moves):
+            self.illegal_estimate += proportions[turn] * self.states_per_turn[turn]
+
     def simulate_n_games(self, n: int):
         """
         runs play_game() n times and prints results every 500 iterations. Updates the MC estimate of non terminal
@@ -197,17 +221,17 @@ class MonteCarlo:
         """
 
         for i in range(n):
-            if not i % 5000:
-                print(self.samples_generated)
-                print(self.non_term_states)
-                print(self.term_states)
-                print(self.illegal_states)
-            if i > 1 and not (i % 25000):
-                self.update_non_term_estimate()
-                print(self.non_term_estimate)
+            # if i > 1 and not (i % 25000):
+                # print(self.samples_generated)
+                # print(self.non_term_states)
+                # print(self.term_states)
+                # print(self.illegal_states)
+                # self.update_non_term_estimate()
+                # print(self.non_term_estimate)
             self.play_game()
         self.update_non_term_estimate()
-        print(self.non_term_estimate)
+        self.update_term_estimate()
+        self.update_illegal_estimate()
 
 
 class BoardState:
@@ -225,7 +249,7 @@ def estimate_nonterm_proportions(mc_record: MonteCarlo):
     :return: array of the proportion of states at each time step
     Gives the proportion of non-terminal states at each step in an array, which can be used as a probability estimate
     """
-    proportions = [1]
+    proportions = [1.0]
     for turn in range(1, mc_record.max_moves+1):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
@@ -242,7 +266,7 @@ def estimate_term_proportions(mc_record: MonteCarlo):
     :return: array of the proportion of states at each time step
     Gives the proportion of terminal states at each step in an array, which can be used as a probability estimate
     """
-    proportions = [1]
+    proportions = [0.0]
     for turn in range(1, mc_record.max_moves+1):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
@@ -259,7 +283,7 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
     :return: array of the proportion of states at each time step
     Gives the proportion of illegal states at each step in an array, which can be used as a probability estimate
     """
-    proportions = [1]
+    proportions = [0.0]
     for turn in range(1, mc_record.max_moves+1):
         non_term = mc_record.non_term_states[turn]
         term = mc_record.term_states[turn]
@@ -270,20 +294,79 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 
 if __name__ == '__main__':
-    # with open('4x9k4results.txt', 'a') as f:
-    #     f.write("Test for 4x9 k=4 \n")
-    # estimates = []
-    # for i in range(10):
-    a = MonteCarlo(4, 9, 4)
-    a.simulate_n_games(1000000)
-    estimate = a.non_term_estimate
-        # estimates.append(estimate)
-    #     with open('4x9k4results.txt', 'a') as f:
-    #         f.write(f"{estimate} \n")
-    # mean = sum(estimates)/len(estimates)
-    # sterror = sem(estimates)
-    # with open('4x9k4results.txt', 'a') as f:
-    #     f.write(f"\nMean:{mean} \n Standard Error: {sterror}")
-    print(estimate_nonterm_proportions(a))
-    print(estimate_term_proportions(a))
-    print(estimate_illegal_proportions(a))
+    k = 4
+    m = 4
+    n = 9
+    runs = 20
+    samples = 100000
+
+    # for _ in range(20):
+    #     a = MonteCarlo(m, n, k)
+    #     a.simulate_n_games(1000000)
+
+
+
+    with open(f'{m}x{n}k{k}results.txt', 'a') as f:
+        f.write(f"\n\n\nTest for {m}x{n} k={k}: \n")
+        f.write(f"{runs} runs and {samples} samples \n\n ")
+        non_term_estimates = []
+        term_estimates = []
+        illegal_estimates = []
+        term_states = {x: 0 for x in range(n * m + 1)}
+        non_term_states = {x: 0 for x in range(n * m + 1)}
+        illegal_states = {x: 0 for x in range(n * m + 1)}
+        for run in range(runs):
+            a = MonteCarlo(m, n, k)
+            a.simulate_n_games(samples)
+            non_term_estimate = a.non_term_estimate
+            term_estimate = a.term_estimate
+            illegal_estimate = a.illegal_estimate
+            non_term_estimates.append(non_term_estimate)
+            term_estimates.append(term_estimate)
+            illegal_estimates.append(illegal_estimate)
+            print(f"Run {run} Complete")
+            for turn in range(1, m*n+1):
+                term_states[turn] += a.term_states[turn]
+                non_term_states[turn] += a.non_term_states[turn]
+                illegal_states[turn] += a.illegal_states[turn]
+
+        f.write(f"non_term_estimates = {non_term_estimates} \n")
+        mean = sum(non_term_estimates) / len(non_term_estimates)
+        sterror = sem(non_term_estimates)
+        f.write(f"\nMean:{mean} \n Standard Error: {sterror}\n\n")
+
+        f.write(f"term_estimates = {term_estimates} \n")
+        mean = sum(term_estimates) / len(term_estimates)
+        sterror = sem(term_estimates)
+        f.write(f"\nMean:{mean} \n Standard Error: {sterror}\n\n")
+
+        f.write(f"illegal_estimates = {illegal_estimates} \n")
+        mean = sum(illegal_estimates) / len(illegal_estimates)
+        sterror = sem(illegal_estimates)
+        f.write(f"\nMean:{mean} \nStandard Error: {sterror}\n\n")
+
+        a.term_states = term_states
+        a.non_term_states = non_term_states
+        a.illegal_states = illegal_states
+
+        states_per_turn = [a.states_per_turn[turn] for turn in range(m*n+1)]
+
+        nonterm_prop = [estimate_nonterm_proportions(a)[turn] for turn in range(m*n+1)]
+        term_prop = [estimate_term_proportions(a)[turn] for turn in range(m*n+1)]
+        illegal_prop = [estimate_illegal_proportions(a)[turn] for turn in range(m*n+1)]
+
+        nonterm_per_turn = [states_per_turn[turn]*nonterm_prop[turn] for turn in range(1,m*n + 1)]
+        term_per_turn = [states_per_turn[turn]*term_prop[turn] for turn in range(1,m*n + 1)]
+        illegal_per_turn = [states_per_turn[turn]*illegal_prop[turn] for turn in range(1,m*n + 1)]
+
+        f.write(f'\nstates_per_turn = {states_per_turn}\n')
+        f.write(f'\nnon_terminal_per_turn = {nonterm_per_turn}')
+        f.write(f'\nterm_per_turn = {term_per_turn}')
+        f.write(f'\nillegal_per_turn = {illegal_per_turn}\n')
+        f.write(f'\nnonterm_prop = {nonterm_prop}')
+        f.write(f'\nterm_prop = {term_prop}')
+        f.write(f'\nillegal_prop = {illegal_prop}')
+
+
+
+

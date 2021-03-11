@@ -3,6 +3,7 @@ import montecarlostates
 
 if __name__ == '__main__':
 
+
     a = montecarlostates.MonteCarlo(7, 7, 3)
     testmat = \
         [['0', '0', '0', '0', '0', '0', '0'],
@@ -111,4 +112,10 @@ if __name__ == '__main__':
     print(terminal, winlist, winset)
     legal, winset = a.check_legal(testmat, (0, 5), winlist, winset, "First")
     print(legal, winset)
+
+    a = montecarlostates.MonteCarlo(7, 7, 3)
+    a.play_game()
+    print(a.non_term_states, a.term_states)
+
+
 
