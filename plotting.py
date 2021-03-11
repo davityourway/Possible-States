@@ -24,7 +24,7 @@ def plot_proportions(nonterm_prop: List[float], term_prop: List[float], illegal_
 
 def plot_log_states(statespt: List[float], non_termpt: List[float], termpt: List[float], illegalpt: List[float], m:int, n:int, k:int):
     plt.title(label=f"m={m}, n={n}, k={k}")
-    plt.plot(statespt)
+    plt.plot(statespt, linestyle='dashed')
     plt.plot(non_termpt)
     plt.plot(termpt)
     plt.plot(illegal_per_turn)
@@ -49,5 +49,5 @@ def plot_states(statespt: List[float], non_termpt: List[float], termpt: List[flo
 
 
 plot_proportions(nonterm_prop, term_prop, illegal_prop, 4, 9, 4)
-# plot_log_states(states_per_turn, non_terminal_per_turn, term_per_turn, illegal_per_turn, 4, 9, 4)
-# plot_states(states_per_turn, non_terminal_per_turn, term_per_turn, illegal_per_turn, 4, 9, 4)
+plot_log_states(states_per_turn, non_terminal_per_turn, term_per_turn, illegal_per_turn, 4, 9, 4)
+plot_states(states_per_turn, non_terminal_per_turn, term_per_turn, illegal_per_turn, 4, 9, 4)
