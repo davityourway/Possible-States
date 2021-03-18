@@ -35,7 +35,7 @@ def results_to_csv(read_path: str, write_path: str):
     with open(read_path, 'r') as f:
         data = f.readlines()
     for i in range(len(data)):
-        params = testre.match(data[i])
+        params = paramre.match(data[i])
         if params:
             m_nonterm = meanre.match(data[i + 5])
             st_nonterm = sterrorre.match(data[i + 6])
