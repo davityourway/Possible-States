@@ -28,7 +28,7 @@ print(st.group(1))
 print(data[9])
 
 def results_to_csv(read_path: str, write_path: str):
-    paramre = re.compile('Test for (\d)x(\d) k=(\d):')
+    paramre = re.compile('Test for (\d*)x(\d*) k=(\d*):')
     meanre = re.compile('Mean:(((\d)*.(\d)*)e*\+*(\d)*)')
     sterrorre = re.compile('Standard Error: (((\d)*.(\d)*)e*\+*(\d)*)')
     tests = []
@@ -62,6 +62,7 @@ if __name__ == '__main__':
         header = ["m", "n", "k", "mn", "nonterm_mean", "nonterm_sterror", "term_mean", "term_sterror", "illegal_mean", "illegal_sterror"]
         headerwriter.writerow(header)
 
-    for i in range(4, 10):
+    for i in range(4, 11):
+        print(i)
         results_to_csv(f'k<=m<={i}.txt', "resulttable.csv")
-    results_to_csv("squareresults.txt", "squaretable.csv")
+    # results_to_csv("squareresults.txt", "squaretable.csv")
