@@ -300,11 +300,11 @@ def estimate_illegal_proportions(mc_record: MonteCarlo):
 
 
 if __name__ == '__main__':
-    k = 5
-    m = 19
-    n = 19
-    runs = 5
-    samples = 100
+    k = 3
+    m = 2
+    n = 3
+    runs = 10
+    samples = 1000000
     # #
     # for _ in range(2):
     #     a = MonteCarlo(m, n, k)
@@ -328,7 +328,7 @@ if __name__ == '__main__':
     #         print(m, n, k)
     #         if k == m == n:
 #             break
-    with open(f'k={k}={m}n={n}.txt', 'a') as f:
+    with open(f'k={k}m={m}n={n}.txt', 'a') as f:
 # with open(f'{m}x{n}k{k}results.txt', 'a') as f:
         f.write(f"\n\n\nTest for {m}x{n} k={k}: \n")
         f.write(f"{runs} runs and {samples} samples \n\n")

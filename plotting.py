@@ -133,7 +133,7 @@ def loglikelihood_sum(vars, mn_list: List, state_list: List, predictor: str):
     return -total
 
 
-def optimize_given_k(mn_list: List, state_list: List, a0: float, b0: float, predictor: str):
+def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, predictor: str):
     x0 = numpy.array([a0, b0])
     res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds= ((0, None), (2, None)))
     return res
@@ -152,6 +152,8 @@ if __name__ == "__main__":
     terms_by_k = []
     illegal_by_k = []
     total_states = []
+    mle_nonterm_preds = []
+    mle_illegal_preds = []
 
     colors = ['#ffffe5','#f7fcb9','#d9f0a3','#addd8e','#78c679','#41ab5d','#238443','#005a32']
     colors.reverse()
@@ -163,14 +165,6 @@ if __name__ == "__main__":
     nonterm_prop_by_k = mn_by_prop(nonterms_by_k)
     term_prop_by_k = mn_by_prop(terms_by_k)
     illegal_prop_by_k = mn_by_prop(illegal_by_k)
-    #
-    # opt = optimize_given_k(nonterms_by_k[0][0], nonterms_by_k[0][1], 4, 6, "nonterm")
-    # print(opt)
-    # a = opt.x[0]
-    # b=opt.x[1]
-    # y = [nonterm_prop_predictor(a, b, x) for x in nonterms_by_k[0][0]]
-    # plt.plot(nonterms_by_k[0][0], y)
-    # plt.show()
 
 
     # for i in range(len(nonterms_by_k)):
@@ -188,26 +182,25 @@ if __name__ == "__main__":
     #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i+3}')
     #     plt.plot(nonterm_prop_by_k[i][0], y)
     #
-    # for i in range(len(nonterm_prop_by_k)):
-    #     opt = optimize_given_k(illegal_by_k[i][0], illegal_by_k[i][1], 20, 6, "illegal")
-    #     print(illegal_by_k[i][0])
-    #     print(illegal_by_k[i][1])
-    #
-    #     a = opt.x[0]
-    #     b = opt.x[1]
-    #     print(opt)
-    #     y = [illegal_prop_predictor(a, b, x) for x in illegal_prop_by_k[i][0]]
-    #     print(illegal_prop_by_k[i][0])
-    #     print(y)
-    #     coordinates = zip(illegal_by_k[i][0], y)
-    #     coordinates = sorted(coordinates)
-    #     xy = zip(*coordinates)
-    #     xy = [list(z) for z in xy]
-    #
-    #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i+3}')
-    #     plt.plot(xy[0], xy[1])
     for i in range(len(nonterm_prop_by_k)):
-        opt = optimize_given_k(nonterms_by_k[i][0], nonterms_by_k[i][1], 20, 6, "nonterm")
+        opt = MLE_given_k(illegal_by_k[i][0], illegal_by_k[i][1], 20, 6, "illegal")
+        print(illegal_by_k[i][0])
+        print(illegal_by_k[i][1])
+
+        a = opt.x[0]
+        b = opt.x[1]
+        y = [illegal_prop_predictor(a, b, x) for x in illegal_prop_by_k[i][0]]
+        print(illegal_prop_by_k[i][0])
+        print(y)
+        coordinates = zip(illegal_by_k[i][0], y)
+        coordinates = sorted(coordinates)
+        xy = zip(*coordinates)
+        xy = [list(z) for z in xy]
+        mle_illegal_preds.append(xy[1])
+        # plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i+3}')
+        # plt.plot(xy[0], xy[1])
+    for i in range(len(nonterm_prop_by_k)):
+        opt = MLE_given_k(nonterms_by_k[i][0], nonterms_by_k[i][1], 5, 6, "nonterm")
         a = opt.x[0]
         b = opt.x[1]
         print(opt)
@@ -216,17 +209,19 @@ if __name__ == "__main__":
         coordinates = sorted(coordinates)
         xy = zip(*coordinates)
         xy = [list(z) for z in xy]
-
+        mle_nonterm_preds.append(xy[1])
         plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i+3}')
         plt.plot(xy[0], xy[1])
-    # for i in range(len(term_prop_by_k)):
-    #     coordinates = zip(term_prop_by_k[i][0], term_prop_by_k[i][1])
-    #     coordinates = sorted(coordinates)
-    #     xy = zip(*coordinates)
-    #     xy = [list(z) for z in xy]
-    #     loess = sm.nonparametric.lowess(xy[1], xy[0], frac= 1/3, return_sorted=False)
-    #     # plt.plot(xy[0], loess)
-    #     plt.scatter(xy[0], xy[1], label=f'{i + 3}')
+    for i in range(len(term_prop_by_k)):
+        coordinates = zip(term_prop_by_k[i][0], term_prop_by_k[i][1])
+        coordinates = sorted(coordinates)
+        xy = zip(*coordinates)
+        xy = [list(z) for z in xy]
+        nontermatk = mle_nonterm_preds[i]
+        illegalatk = mle_illegal_preds[i]
+        mle_term_preds = [1 - nontermatk[i] - illegalatk[i] for i in range(len(nontermatk))]
+        # plt.plot(xy[0], mle_term_preds)
+        # plt.scatter(xy[0], xy[1], label=f'{i + 3}')
     # for i in range(len(illegal_prop_by_k)):
     #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
     #
@@ -234,8 +229,8 @@ if __name__ == "__main__":
     # mn, states = mn_by_states(81)
     # plt.plot(mn, states, label="Max", color = "blue")
 
-    plt.title(label="Non-terminal States Proportion by k")
-    plt.ylabel("Non-terminal Proportion")
+    plt.title(label="Terminal States Proportion by k")
+    plt.ylabel("Terminal Proportion")
     plt.xlabel("m*n")
     # plt.yscale("log")
     plt.legend()
