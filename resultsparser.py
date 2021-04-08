@@ -10,7 +10,7 @@ sterrorre = re.compile('Standard Error: ((\d)*.(\d)*)')
 for group in range(1,4):
     print(m.group(group))
 
-with open('k<=m<=5.txt', 'r') as f:
+with open('results/k<=m<=5.txt', 'r') as f:
     data = f.readlines()
 for i in range(len(data)):
     params = testre.match(data[i])

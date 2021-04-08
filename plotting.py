@@ -182,7 +182,8 @@ if __name__ == "__main__":
     #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i+3}')
     #     plt.plot(nonterm_prop_by_k[i][0], y)
     #
-    for i in range(len(nonterm_prop_by_k)):
+    # len(nonterm_prop_by_k)
+    for i in range(1):
         opt = MLE_given_k(illegal_by_k[i][0], illegal_by_k[i][1], 20, 6, "illegal")
         print(illegal_by_k[i][0])
         print(illegal_by_k[i][1])
@@ -197,9 +198,9 @@ if __name__ == "__main__":
         xy = zip(*coordinates)
         xy = [list(z) for z in xy]
         mle_illegal_preds.append(xy[1])
-        # plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i+3}')
-        # plt.plot(xy[0], xy[1])
-    for i in range(len(nonterm_prop_by_k)):
+        plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i+3}')
+        plt.plot(xy[0], xy[1])
+    for i in range(1):
         opt = MLE_given_k(nonterms_by_k[i][0], nonterms_by_k[i][1], 5, 6, "nonterm")
         a = opt.x[0]
         b = opt.x[1]
@@ -212,7 +213,7 @@ if __name__ == "__main__":
         mle_nonterm_preds.append(xy[1])
         plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i+3}')
         plt.plot(xy[0], xy[1])
-    for i in range(len(term_prop_by_k)):
+    for i in range(1):
         coordinates = zip(term_prop_by_k[i][0], term_prop_by_k[i][1])
         coordinates = sorted(coordinates)
         xy = zip(*coordinates)
@@ -220,8 +221,8 @@ if __name__ == "__main__":
         nontermatk = mle_nonterm_preds[i]
         illegalatk = mle_illegal_preds[i]
         mle_term_preds = [1 - nontermatk[i] - illegalatk[i] for i in range(len(nontermatk))]
-        # plt.plot(xy[0], mle_term_preds)
-        # plt.scatter(xy[0], xy[1], label=f'{i + 3}')
+        plt.plot(xy[0], mle_term_preds)
+        plt.scatter(xy[0], xy[1], label=f'{i + 3}')
     # for i in range(len(illegal_prop_by_k)):
     #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
     #
