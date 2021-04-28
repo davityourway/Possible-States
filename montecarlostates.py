@@ -227,13 +227,6 @@ class MonteCarlo:
         """
 
         for i in range(n):
-            # if i > 1 and not (i % 25000):
-                # print(self.samples_generated)
-                # print(self.non_term_states)
-                # print(self.term_states)
-                # print(self.illegal_states)
-                # self.update_non_term_estimate()
-                # print(self.non_term_estimate)
             self.play_game()
         self.update_non_term_estimate()
         self.update_term_estimate()
