@@ -129,26 +129,113 @@ def loglikelihood_at_mn(mn: float, state_count: float, a: float, b:float, predic
     return res/total if total else res
 
 
-def loglikelihood_sum(vars, mn_list: List, state_list: List, predictor: str):
+def loglikelihood_sum(a, b, mn_list: List, state_list: List, predictor: str):
     total = 0
     # predictor = illegal_prop_likelihood if predictor == "illegal" else nonterm_prop_likelihood
     for i in range(len(mn_list)):
-        ll = loglikelihood_at_mn(mn_list[i], state_list[i], vars[0], vars[1], predictor)
+        ll = loglikelihood_at_mn(mn_list[i], state_list[i], a, b, predictor)
         total += ll
     return -total
 
 
 def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, predictor: str):
-    a0_arr = numpy.random.uniform(0, 300, 10)
-    b0_arr = numpy.random.uniform(0, 10, 10)
-    x0 = numpy.array([a0, b0])
-    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds= ((0, None), (0, None)))
-    for x0 in itertools.product(a0_arr, b0_arr):
-        x0 = numpy.array(x0)
-        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds= ((0, None), (0, None)))
+    # a0_arr = numpy.random.uniform(0, 600, 10)
+    # b0_arr = numpy.random.uniform(0, 10, 10)
+    # x0 = numpy.array([a0, b0])
+    x0 = numpy.array([a0])
+    x0_arr = numpy.random.uniform(0, 600, 10)
+
+    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
+    # for x0 in itertools.product(a0_arr, b0_arr):
+    for x0 in x0_arr:
+        x0 = numpy.array([x0])
+        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
         best = res if res.fun < best.fun else best
     print(best)
     return best
+
+def MLE_given_b_k(mn_list: List, state_list: List, a0: float, b0: float, predictor: str):
+    x0 = numpy.array([a0])
+    x0_arr = numpy.random.uniform(0, 600, 10)
+    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
+    for x0 in x0_arr:
+        x0 = numpy.array([x0])
+        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
+        best = res if res.fun < best.fun else best
+    return best
+
+
+"""implement mle for all k"""
+def MLE_all_k_given_b(b: float, prop_by_k: List, states_by_k: List, predictor:str):
+    total = 0
+    for i in range(len(prop_by_k)):
+        mn_vals = states_by_k[i][0]
+        state_vals = states_by_k[i][1]
+        optimizer_res = MLE_given_b_k(mn_vals, state_vals, 20, b, predictor)
+        total += optimizer_res.fun
+    print(total, b)
+    return -total
+
+
+def MLE_nested_all_k(prop_by_k: List, states_by_k: List, predictor:str):
+    x0 = numpy.array([2.6])
+    res = scipy.optimize.minimize(MLE_all_k_given_b, x0=x0, args=(prop_by_k, states_by_k, predictor), method= 'L-BFGS-B', bounds = ((2,3),))
+    print(res.x)
+
+
+
+
+
+
+def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List, states_by_k: List, likelihood_function: Callable):
+    mle_preds = []
+    with open(f'{state_type}coefficients.csv', 'a') as resultfile:
+        headerwriter = csv.writer(resultfile, delimiter=',')
+        header = ["k", "a", "b"]
+        headerwriter.writerow(header)
+    for i in range(len(prop_by_k)):
+        mn_vals = states_by_k[i][0]
+        state_vals = states_by_k[i][1]
+        optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 2.7, state_type)
+        print(optimizer_res)
+        print(optimizer_res.fun)
+        a = optimizer_res.x[0]
+        # b = optimizer_res.x[1]
+        b = 2.7
+        estimated_prop = [likelihood_function(a, b, x) for x in prop_by_k[i][0]]
+        prediction_coords = zip(prop_by_k[i][0], estimated_prop)
+        prediction_coords = sorted(prediction_coords)
+        prediction_coords = zip(*prediction_coords)
+        prediction_coords = [list(z) for z in prediction_coords]
+        mle_preds.append(prediction_coords[1])
+        if do_plot:
+            plt.scatter(prop_by_k[i][0], prop_by_k[i][1], label=f'{i+3}')
+            plt.plot(prediction_coords[0], prediction_coords[1])
+        with open(f'{state_type}coefficients.csv', 'a') as resultfile:
+            rowwriter = csv.writer(resultfile, delimiter=',')
+            # row = [i+3, optimizer_res.x[0], optimizer_res.x[1]]
+            row = [i+3, a, b]
+            row = [str(entry) for entry in row]
+            rowwriter.writerow(row)
+    return mle_preds
+
+
+def arrange_record_plot_terminal(do_plot: bool, terms_by_k: List, term_prop_by_k: List, mle_illegal_preds: List, mle_nonterm_preds: List):
+    mle_term_preds = []
+    for i in range(len(terms_by_k)):
+        pred_coordinates = zip(term_prop_by_k[i][0], term_prop_by_k[i][1])
+        pred_coordinates = sorted(pred_coordinates)
+        pred_coordinates = zip(*pred_coordinates)
+        pred_coordinates = [list(z) for z in pred_coordinates]
+        nontermatk = mle_nonterm_preds[i]
+        illegalatk = mle_illegal_preds[i]
+        mle_term_pred_k = [1 - nontermatk[i] - illegalatk[i] for i in range(len(nontermatk))]
+        mle_term_preds.append(mle_term_pred_k)
+        if do_plot:
+            plt.plot(pred_coordinates[0], mle_term_pred_k)
+            plt.scatter(pred_coordinates[0], pred_coordinates[1], label=f'{i + 3}')
+    return mle_term_preds
+
 
 
 
@@ -164,8 +251,6 @@ if __name__ == "__main__":
     terms_by_k = []
     illegal_by_k = []
     total_states = []
-    mle_nonterm_preds = []
-    mle_illegal_preds = []
 
     colors = ['#ffffe5','#f7fcb9','#d9f0a3','#addd8e','#78c679','#41ab5d','#238443','#005a32']
     colors.reverse()
@@ -178,68 +263,16 @@ if __name__ == "__main__":
     term_prop_by_k = mn_by_prop(terms_by_k)
     illegal_prop_by_k = mn_by_prop(illegal_by_k)
 
-    with open('illegalcoefficients.csv', 'a') as resultfile:
-        headerwriter = csv.writer(resultfile, delimiter=',')
-        header = ["k", "functionvalue", "a", "b"]
-        headerwriter.writerow(header)
+    MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")
 
-    for i in range(8):
-        xs = illegal_by_k[i][0]
-        ys = illegal_by_k[i][1]
-        opt = MLE_given_k(xs, ys, 20, 6, "illegal")
-        print(opt)
-        print(opt.fun)
-        a = opt.x[0]
-        b = opt.x[1]
-        y = [illegal_prop_likelihood(a, b, x) for x in illegal_prop_by_k[i][0]]
-        coordinates = zip(illegal_by_k[i][0], y)
-        coordinates = sorted(coordinates)
-        xy = zip(*coordinates)
-        xy = [list(z) for z in xy]
-        mle_illegal_preds.append(xy[1])
-        plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i+3}')
-        plt.plot(xy[0], xy[1])
-        with open('illegalcoefficients.csv', 'a') as resultfile:
-            rowwriter = csv.writer(resultfile, delimiter=',')
-            row = [i+3, opt.fun, opt.x[0], opt.x[1]]
-            row = [str(entry) for entry in row]
-            rowwriter.writerow(row)
-    # for i in range(8):
-    #     xs = nonterms_by_k[i][0]
-    #     ys = nonterms_by_k[i][1]
-    #     opt = MLE_given_k(xs, ys, 20, 6, "nonterm")
-    #     a = opt.x[0]
-    #     b = opt.x[1]
-    #     print(opt)
-    #     y = [nonterm_prop_likelihood(a, b, x) for x in nonterm_prop_by_k[i][0]]
-    #     coordinates = zip(nonterms_by_k[i][0], y)
-    #     coordinates = sorted(coordinates)
-    #     xy = zip(*coordinates)
-    #     xy = [list(z) for z in xy]
-    #     mle_nonterm_preds.append(xy[1])
-    #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i+3}')
-    #     plt.plot(xy[0], xy[1])
-    #     with open('nontermcoefficients.csv', 'a') as resultfile:
-    #         rowwriter = csv.writer(resultfile, delimiter=',')
-    #         row = [i+3, opt.fun, opt.x[0], opt.x[1]]
-    #         row = [str(entry) for entry in row]
-    #         rowwriter.writerow(row)
-    # for i in range(8):
-    #     coordinates = zip(term_prop_by_k[i][0], term_prop_by_k[i][1])
-    #     coordinates = sorted(coordinates)
-    #     xy = zip(*coordinates)
-    #     xy = [list(z) for z in xy]
-    #     nontermatk = mle_nonterm_preds[i]
-    #     illegalatk = mle_illegal_preds[i]
-    #     mle_term_preds = [1 - nontermatk[i] - illegalatk[i] for i in range(len(nontermatk))]
-    #     plt.plot(xy[0], mle_term_preds)
-    #     plt.scatter(xy[0], xy[1], label=f'{i + 3}')
+    # mle_illegal_preds = arrange_record_and_plot_mle("illegal", True, illegal_prop_by_k, illegal_by_k, illegal_prop_likelihood)
+    # mle_nonterm_preds = arrange_record_and_plot_mle("nonterm", True, nonterm_prop_by_k, nonterms_by_k, nonterm_prop_likelihood)
+    # mle_term_preds = arrange_record_plot_terminal(False, terms_by_k, term_prop_by_k, mle_illegal_preds, mle_nonterm_preds)
 
-
-    plt.title(label="Illegal States Proportion by k")
-    plt.ylabel("Illegal Proportion")
-    plt.xlabel("m*n")
-    # plt.yscale("log")
-    plt.legend()
-
-    plt.show()
+    # plt.title(label="Non-Terminal States Proportion by k")
+    # plt.ylabel("Non-Terminal Proportion")
+    # plt.xlabel("m*n")
+    # # plt.yscale("log")
+    # plt.legend()
+    #
+    # plt.show()
