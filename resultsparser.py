@@ -1,31 +1,6 @@
 import csv
 import re
 
-test = "Test for 3x5 k=3:"
-
-testre = re.compile('Test for (\d)x(\d) k=(\d):')
-m = testre.match(test)
-meanre = re.compile('Mean:((\d)*.(\d)*)')
-sterrorre = re.compile('Standard Error: ((\d)*.(\d)*)')
-for group in range(1,4):
-    print(m.group(group))
-
-with open('results/k<=m<=5.txt', 'r') as f:
-    data = f.readlines()
-for i in range(len(data)):
-    params = testre.match(data[i])
-    if params:
-        m = meanre.match(data[i+5])
-        st = sterrorre.match(data[i+6])
-        print(params.group(1), params.group(2), params.group(3), m.group(1), st.group(1))
-
-print(data[8])
-m = meanre.match(data[8])
-st = sterrorre.match(data[9])
-print(m)
-print(m.group(1))
-print(st.group(1))
-print(data[9])
 
 def results_to_csv(read_path: str, write_path: str):
     paramre = re.compile('Test for (\d*)x(\d*) k=(\d*):')
