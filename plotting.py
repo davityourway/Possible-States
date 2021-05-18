@@ -123,19 +123,23 @@ def nonterm_prop_likelihood(a: float, b: float, x: float):
     return 1 - 1 / denom
 
 
-def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, predictor: str):
+# def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, predictor: str):
+def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, gamma:float, predictor: str):
     # "log likelihood LL(parameters) = sum_i [ nNT_i * log f(x_i) +  (ntot_i - nNT_i) * log(1-f(x_i)) ] + constant"
     total = find_states_mn(mn)
     #
     # predval = predictor(a, b, mn)
     if predictor == "illegal":
-        res = state_count * -math.log(1 + (mn / a) ** -b) + (total - state_count) * -math.log(1 + (mn / a) ** b)
+        # res = state_count * -math.log(1 + (mn / a) ** -b) + (total - state_count) * -math.log(1 + (mn / a) ** b)
+        res = state_count * -math.log(1 + ((mn - gamma) / a) ** -b) + (total - state_count) * -math.log(1 + ((mn-gamma) / a) ** b)
     elif predictor == "nonterm":
-        res = state_count * -math.log(1 + (mn / a) ** b) + (total - state_count) * -math.log(1 + (mn / a) ** -b)
+        # res = state_count * -math.log(1 + (mn / a) ** b) + (total - state_count) * -math.log(1 + (mn / a) ** -b)
+        res = state_count * -math.log(1 + ((mn-gamma) / a) ** b) + (total - state_count) * -math.log(1 + ((mn-gamma) / a) ** -b)
     else:
         print("Invalid LL Predictor")
         raise
     return res / total if total else res
+
 
 def six_param_nll(vars: numpy.array, states_by_k: List, state_type: str):
     """
@@ -155,6 +159,7 @@ def six_param_nll(vars: numpy.array, states_by_k: List, state_type: str):
     for i in range(len(states_by_k)):
         total_nll += loglikelihood_sum(a_vals[i], b, states_by_k[i][0], states_by_k[i][1], state_type)
     return total_nll
+
 
 def eight_param_nll(vars: numpy.array, states_by_k: List, state_type: str):
     """
@@ -176,6 +181,7 @@ def eight_param_nll(vars: numpy.array, states_by_k: List, state_type: str):
         total_nll += loglikelihood_sum(a_vals[i], b, states_by_k[i][0], states_by_k[i][1], state_type)
     return total_nll
 
+
 def four_param_nll(vars: numpy.array, illegal_by_k: List, nonterms_by_k: List):
     """
     :param vars: optimization parameters
@@ -188,6 +194,7 @@ def four_param_nll(vars: numpy.array, illegal_by_k: List, nonterms_by_k: List):
     b = vars[1]
     c1 = vars[2]
     c2 = vars[3]
+    gamma = vars[4]
     illegal_a_vals = []
     nonterm_a_vals = []
     total_illegal_nll = 0
@@ -232,7 +239,7 @@ def five_param_nll(vars: numpy.array, illegal_by_k: List, nonterms_by_k: List):
 def five_param_fit(x0: numpy.array, illegal_by_k: List, nonterms_by_k: List):
     best = scipy.optimize.minimize(five_param_nll, x0=x0, args=(illegal_by_k, nonterms_by_k), method='Powell',
                                    bounds=((0, None), (0, None), (0, None), (0, None), (0, None)))
-    for i in range(10):
+    for i in range(1):
         print(i)
         alpha = numpy.random.random_sample() * 10
         b = numpy.random.random_sample() * 10
@@ -253,25 +260,29 @@ def five_param_fit(x0: numpy.array, illegal_by_k: List, nonterms_by_k: List):
 def four_param_fit(x0: numpy.array, illegal_by_k: List, nonterms_by_k: List):
     best = scipy.optimize.minimize(four_param_nll, x0=x0, args=(illegal_by_k, nonterms_by_k), method='Powell',
                                    bounds=((0, None), (0, None), (0, None), (0, None)))
-    for i in range(10):
+    print(best)
+    for i in range(20):
         print(i)
         alpha = numpy.random.random_sample() * 10
         b = numpy.random.random_sample() * 10
-        c1 = numpy.random.random_sample()
-        c2 = numpy.random.random_sample()
+        c1 = numpy.random.random_sample() * 2
+        c2 = numpy.random.random_sample() * 2
+        gamma = numpy.random.random_sample() * 10
         x0[1] = alpha
         x0[2] = b
         x0[2] = c1
         x0[3] = c2
+        x0[4] = gamma
         new_res = scipy.optimize.minimize(four_param_nll, x0=x0, args=(illegal_by_k, nonterms_by_k), method='Powell',
                                           bounds=((0, None), (0, None), (0, None), (0, None)))
         best = new_res if new_res.fun < best.fun else best
+        print(best)
     return best
 
 def six_param_fit(x0: numpy.array, states_by_k: List, state_type: str):
     best = scipy.optimize.minimize(six_param_nll, x0=x0, args=(states_by_k, state_type), method='Powell',
                                    bounds=((0, None), (0, None), (0, None)))
-    for i in range(10):
+    for i in range(1):
         print(i)
         alpha = numpy.random.random_sample() * 10
         b = numpy.random.random_sample() * 10
@@ -287,12 +298,12 @@ def six_param_fit(x0: numpy.array, states_by_k: List, state_type: str):
 def eight_param_fit(x0: numpy.array, states_by_k: List, state_type: str):
     best = scipy.optimize.minimize(eight_param_nll, x0=x0, args=(states_by_k, state_type), method='Powell',
                                    bounds=((0, None), (0, None), (0, None), (0,None)))
-    for i in range(100):
+    for i in range(20):
         print(i)
         alpha = numpy.random.random_sample() * 10
         b = numpy.random.random_sample() * 10
         c = numpy.random.random_sample()
-        beta = numpy.random.random_sample() * 2
+        beta = numpy.random.random_sample() * 5
         x0[0] = alpha
         x0[1] = b
         x0[2] = c
@@ -304,34 +315,43 @@ def eight_param_fit(x0: numpy.array, states_by_k: List, state_type: str):
 
 
 
-def loglikelihood_sum(a, b, mn_list: List, state_list: List, predictor: str):
+# def loglikelihood_sum(a, b, mn_list: List, state_list: List, predictor: str):
+def loglikelihood_sum(vars, mn_list: List, state_list: List, predictor: str):
+    a = vars[0]
+    b = vars[1]
+    gamma = vars[2]
     total = 0
     # predictor = illegal_prop_likelihood if predictor == "illegal" else nonterm_prop_likelihood
     for i in range(len(mn_list)):
-        ll = loglikelihood_at_mn(mn_list[i], state_list[i], a, b, predictor)
+        ll = loglikelihood_at_mn(mn_list[i], state_list[i], a, b, gamma, predictor)
+        # ll = loglikelihood_at_mn(mn_list[i], state_list[i], a, b, predictor)
         total += ll
     return -total / len(mn_list)
 
 
-def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, predictor: str):
-    # a0_arr = numpy.random.uniform(0, 600, 10)
-    # b0_arr = numpy.random.uniform(0, 10, 10)
+def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, gamma0: float, predictor: str):
+    a0_arr = numpy.random.uniform(0, 800, 3)
+    b0_arr = numpy.random.uniform(0, 10, 3)
     # x0 = numpy.array([a0, b0])
-    x0 = numpy.array([a0])
-    x0_arr = numpy.random.uniform(0, 600, 10)
+    gamma0_arr = numpy.random.uniform(-100, 0, 3)
+    x0 = numpy.array([a0, b0, gamma0])
+    # x0 = numpy.array([a0])
+    # x0_arr = numpy.random.uniform(0, 600, 10)
 
-    # best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
-    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method='Powell',
-                                   bounds=((0, None),))
+    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'Powell', bounds=((0,None),(0,None),(None,0)))
+    # best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method='Powell', bounds=((0,None),(0,None)))
 
+    for x0 in itertools.product(a0_arr, b0_arr, gamma0_arr):
+        print(x0)
     # for x0 in itertools.product(a0_arr, b0_arr):
-    for x0 in x0_arr:
+    #     print(best)
+    # for x0 in x0_arr:
         x0 = numpy.array([x0])
-        # res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),))
-        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(b0, mn_list, state_list, predictor),
-                                      method='Powell', bounds=((0, None),))
-
-        best = res if res.fun < best.fun else best
+        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'Powell', bounds=((0,None),(0,None),(None,0)))
+        # res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor),
+        #                               method='Powell')
+    #
+        best = res if res.fun < best.fun or numpy.isnan(best.fun) else best
     print(best)
     return best
 
@@ -390,23 +410,27 @@ def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List,
     mle_preds = []
     with open(f'{state_type}coefficients.csv', 'a') as resultfile:
         headerwriter = csv.writer(resultfile, delimiter=',')
-        header = ["k", "a", "b"]
+        header = ["k", "a", "b", "gamma"]
+        # header = ["k", "a", "b"]
         headerwriter.writerow(header)
     for i in range(len(prop_by_k)):
         mn_vals = states_by_k[i][0]
         state_vals = states_by_k[i][1]
         # [3.22808636] for nonterm
         # [3.20243921] for illegal
-        if likelihood_function == illegal_prop_likelihood:
-            b = 3.16308997
-        elif likelihood_function == nonterm_prop_likelihood:
-            b = 3.140928
-        optimizer_res = MLE_given_k(mn_vals, state_vals, 20, b, state_type)
+        # if likelihood_function == illegal_prop_likelihood:
+        #     b = 3.16308997
+        # elif likelihood_function == nonterm_prop_likelihood:
+        #     b = 3.140928
+        optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 6, -2, state_type)
+        # optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 6, state_type)
         print(optimizer_res)
         print(optimizer_res.fun)
         a = optimizer_res.x[0]
-        # b = optimizer_res.x[1]
-        estimated_prop = [likelihood_function(a, b, x) for x in prop_by_k[i][0]]
+        b = optimizer_res.x[1]
+        gamma = optimizer_res.x[2]
+        # estimated_prop = [likelihood_function(a, b, x) for x in prop_by_k[i][0]]
+        estimated_prop = [likelihood_function(a, b, x-gamma) for x in prop_by_k[i][0]]
         prediction_coords = zip(prop_by_k[i][0], estimated_prop)
         prediction_coords = sorted(prediction_coords)
         prediction_coords = zip(*prediction_coords)
@@ -417,7 +441,8 @@ def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List,
             plt.plot(prediction_coords[0], prediction_coords[1])
         with open(f'{state_type}coefficients.csv', 'a') as resultfile:
             rowwriter = csv.writer(resultfile, delimiter=',')
-            row = [i + 3, a, b]
+            # row = [i + 3, a, b]
+            row = [i + 3, a, b, gamma]
             row = [str(entry) for entry in row]
             rowwriter.writerow(row)
     return mle_preds
@@ -490,7 +515,7 @@ if __name__ == "__main__":
     illegal_prop_by_k = mn_by_prop(illegal_by_k)
 
     """Four parameter fitting"""
-
+    #
     # x0 = [3.37, 3.15, .43, .36]
     # x0 = numpy.array(x0)
     # res = four_param_fit(x0, illegal_by_k, nonterms_by_k)
@@ -504,7 +529,7 @@ if __name__ == "__main__":
     #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
     #     illegal_a = power_law(i+3, res.x[0], res.x[2])
     #     illegal_b = res.x[1]
-    #     line = numpy.linspace(4, 250, 100)
+    #     line = numpy.linspace(4, 350, 100)
     #     illegal_preds = [illegal_prop_likelihood(illegal_a, illegal_b, x) for x in line]
     #     plt.plot(line, illegal_preds)
     # print(res)
@@ -518,41 +543,41 @@ if __name__ == "__main__":
     #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i + 3}')
     #     nonterm_a = power_law(i+3, res.x[0], res.x[3])
     #     nonterm_b = res.x[1]
-    #     line = numpy.linspace(4, 250, 100)
+    #     line = numpy.linspace(4, 350, 100)
     #     nonterm_preds = [nonterm_prop_likelihood(nonterm_a, nonterm_b, x) for x in line]
     #     plt.plot(line, nonterm_preds)
 
     """Five parameter fitting"""
-    x0 = [3.37, 3.15, .43, .36, 5]
-    x0 = numpy.array(x0)
-    res = five_param_fit(x0, illegal_by_k, nonterms_by_k)
-    illegal_fig = plt.figure(1)
-    plt.title(label="Illegal proportion 5 parameters")
-    plt.ylabel("Proportion")
-    plt.xlabel("m*n")
-    plt.yscale("linear")
-    plt.legend()
-    for i in range(len(illegal_prop_by_k)):
-        plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
-        illegal_a = power_law_plus_beta(i + 3, res.x[0], res.x[2], res.x[4])
-        illegal_b = res.x[1]
-        line = numpy.linspace(4, 250, 100)
-        illegal_preds = [illegal_prop_likelihood(illegal_a, illegal_b, x) for x in line]
-        plt.plot(line, illegal_preds)
-    print(res)
-    nonterm_fig = plt.figure(2)
-    plt.title(label="Non-Terminal proportion 5 parameters")
-    plt.ylabel("Proportion")
-    plt.xlabel("m*n")
-    plt.yscale("linear")
-    plt.legend()
-    for i in range(len(nonterm_prop_by_k)):
-        plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i + 3}')
-        nonterm_a = power_law_plus_beta(i+3, res.x[0], res.x[3], res.x[4])
-        nonterm_b = res.x[1]
-        line = numpy.linspace(4, 250, 100)
-        nonterm_preds = [nonterm_prop_likelihood(nonterm_a, nonterm_b, x) for x in line]
-        plt.plot(line, nonterm_preds)
+    # x0 = [3.37, 3.15, .43, .36, 5]
+    # x0 = numpy.array(x0)
+    # res = five_param_fit(x0, illegal_by_k, nonterms_by_k)
+    # illegal_fig = plt.figure(1)
+    # plt.title(label="Illegal proportion 5 parameters")
+    # plt.ylabel("Proportion")
+    # plt.xlabel("m*n")
+    # plt.yscale("linear")
+    # plt.legend()
+    # for i in range(len(illegal_prop_by_k)):
+    #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
+    #     illegal_a = power_law_plus_beta(i + 3, res.x[0], res.x[2], res.x[4])
+    #     illegal_b = res.x[1]
+    #     line = numpy.linspace(4, 350, 100)
+    #     illegal_preds = [illegal_prop_likelihood(illegal_a, illegal_b, x) for x in line]
+    #     plt.plot(line, illegal_preds)
+    # print(res)
+    # nonterm_fig = plt.figure(2)
+    # plt.title(label="Non-Terminal proportion 5 parameters")
+    # plt.ylabel("Proportion")
+    # plt.xlabel("m*n")
+    # plt.yscale("linear")
+    # plt.legend()
+    # for i in range(len(nonterm_prop_by_k)):
+    #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i + 3}')
+    #     nonterm_a = power_law_plus_beta(i+3, res.x[0], res.x[3], res.x[4])
+    #     nonterm_b = res.x[1]
+    #     line = numpy.linspace(4, 350, 100)
+    #     nonterm_preds = [nonterm_prop_likelihood(nonterm_a, nonterm_b, x) for x in line]
+    #     plt.plot(line, nonterm_preds)
 
     """Six parameter fitting"""
 
@@ -590,7 +615,7 @@ if __name__ == "__main__":
     # print(nonterm_res)
 
     """Eight parameter fitting"""
-
+    #
     # x0 = [3.37, 3.15, .40, 1.0]
     # x0 = numpy.array(x0)
     # illegal_res = eight_param_fit(x0, illegal_by_k, "illegal")
@@ -599,7 +624,7 @@ if __name__ == "__main__":
     #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
     #     illegal_a = power_law_plus_beta(i + 3, illegal_res.x[0], illegal_res.x[2], illegal_res.x[3])
     #     illegal_b = illegal_res.x[1]
-    #     line = numpy.linspace(4, 140, 100)
+    #     line = numpy.linspace(4, 340, 100)
     #     illegal_preds = [illegal_prop_likelihood(illegal_a, illegal_b, x) for x in line]
     #     plt.plot(line, illegal_preds)
     # print(illegal_res)
@@ -614,7 +639,7 @@ if __name__ == "__main__":
     #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i + 3}')
     #     nonterm_a = power_law_plus_beta(i + 3, nonterm_res.x[0], nonterm_res.x[2], nonterm_res.x[3])
     #     nonterm_b = nonterm_res.x[1]
-    #     line = numpy.linspace(4, 140, 100)
+    #     line = numpy.linspace(4, 340, 100)
     #     nonterm_preds = [nonterm_prop_likelihood(nonterm_a, nonterm_b, x) for x in line]
     #     plt.plot(line, nonterm_preds)
     # print(nonterm_res)
@@ -682,19 +707,68 @@ if __name__ == "__main__":
     #     line = numpy.linspace(4, 140, 100)
     #     term_preds = [1-illegal_preds_by_i[i][x]-nonterm_preds_by_i[i][x] for x in range(100)]
     #     plt.plot(line, term_preds)
+    #
+    """Eight parameter plotting wtih Terminal"""
+    #
+    # orig_illegal_paramas = [3.99776214, 2.86283706, 0.18438861, 1.81723774]
+    # orig_nonterm_paramas = [4.35239377, 2.54641668, 0.07404511, 3.1253808 ]
+    # nonterm_preds_by_i = []
+    # illegal_preds_by_i = []
+    # nonterm_fig = plt.figure(1)
+    # for i in range(len(nonterm_prop_by_k)):
+    #     plt.scatter(nonterm_prop_by_k[i][0], nonterm_prop_by_k[i][1], label=f'{i + 3}')
+    #     nonterm_a = power_law_plus_beta(i+3, orig_nonterm_paramas[0], orig_nonterm_paramas[2], orig_nonterm_paramas[3])
+    #     nonterm_b = orig_nonterm_paramas[1]
+    #     line = numpy.linspace(4, 340, 100)
+    #     nonterm_preds = [nonterm_prop_likelihood(nonterm_a, nonterm_b, x) for x in line]
+    #     nonterm_preds_by_i.append(nonterm_preds)
+    #     plt.plot(line, nonterm_preds)
+    # plt.title(label="Non-Terminal proportion 8 parameters")
+    # plt.ylabel("Proportion")
+    # plt.xlabel("m*n")
+    # plt.yscale("linear")
+    # plt.legend()
+    #
+    # illegal_fig = plt.figure(2)
+    # for i in range(len(illegal_prop_by_k)):
+    #     plt.scatter(illegal_prop_by_k[i][0], illegal_prop_by_k[i][1], label=f'{i + 3}')
+    #     illegal_a = power_law_plus_beta(i+3, orig_illegal_paramas[0], orig_illegal_paramas[2], orig_illegal_paramas[3])
+    #     illegal_b = orig_illegal_paramas[1]
+    #     line = numpy.linspace(4, 340, 100)
+    #     illegal_preds = [illegal_prop_likelihood(illegal_a, illegal_b, x) for x in line]
+    #     illegal_preds_by_i.append(illegal_preds)
+    #     plt.plot(line, illegal_preds)
+    # plt.title(label="Illegal proportion 8 parameters")
+    # plt.ylabel("Proportion")
+    # plt.xlabel("m*n")
+    # plt.yscale("linear")
+    # plt.legend()
+    #
+    # terminal_fig = plt.figure(3)
+    # for i in range(len(illegal_prop_by_k)):
+    #     plt.scatter(term_prop_by_k[i][0], term_prop_by_k[i][1], label=f'{i + 3}')
+    #     line = numpy.linspace(4, 340, 100)
+    #     term_preds = [1-illegal_preds_by_i[i][x]-nonterm_preds_by_i[i][x] for x in range(100)]
+    #     plt.plot(line, term_preds)
+    # plt.title(label="Terminal proportion 8 parameters")
+    # plt.ylabel("Proportion")
+    # plt.xlabel("m*n")
+    # plt.yscale("linear")
+    # plt.legend()
 
+    """Old powerlaw fitting sequence"""
 
     #
     # MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")
     # MLE_nested_all_k(illegal_prop_by_k, illegal_by_k, "illegal")
-    #
-    # mle_illegal_preds = arrange_record_and_plot_mle("illegal", True, illegal_prop_by_k, illegal_by_k, illegal_prop_likelihood)
-    # mle_nonterm_preds = arrange_record_and_plot_mle("nonterm", False, nonterm_prop_by_k, nonterms_by_k, nonterm_prop_likelihood)
+
+    mle_illegal_preds = arrange_record_and_plot_mle("illegal", True, illegal_prop_by_k, illegal_by_k, illegal_prop_likelihood)
+    # mle_nonterm_preds = arrange_record_and_plot_mle("nonterm", True, nonterm_prop_by_k, nonterms_by_k, nonterm_prop_likelihood)
     # mle_term_preds = arrange_record_plot_terminal(False, terms_by_k, term_prop_by_k, mle_illegal_preds, mle_nonterm_preds)
-    # #
+    # # #
     # illegal_a_and_k_values = return_and_plot_a_coefficients("illegal", False)
     # nonterm_a_and_k_values = return_and_plot_a_coefficients("nonterm", True)
-    #
+
     # illegal_powerlaw_fit = fit_coefficient_power_law(illegal_a_and_k_values[0], illegal_a_and_k_values[1])[0]
     # nonterm_powerlaw_fit = fit_coefficient_power_law(nonterm_a_and_k_values[0], nonterm_a_and_k_values[1])[0]
     #
@@ -704,12 +778,17 @@ if __name__ == "__main__":
     #
     # # plt.plot(line, illegal_powerlaw_preds)
     # plt.plot(line, nonterm_powerlaw_preds)
-    #
-    #
-    # plt.title(label="Illegal proportion 6 parameters")
-    # plt.ylabel("Proportion")
-    # plt.xlabel("m*n")
-    # plt.yscale("linear")
+
+
+    plt.title(label="Illegal proportion max parameters")
+    plt.ylabel("Proportion")
+    plt.xlabel("m*n")
+    plt.yscale("linear")
     plt.legend()
     #
+
+
+
+
+
     plt.show()
