@@ -122,19 +122,42 @@ def nonterm_prop_likelihood(a: float, b: float, x: float):
     denom = 1 + (x / a) ** -b
     return 1 - 1 / denom
 
+def illegal_burr_likelihood(a: float, b: float, gamma:float, x: float):
+    likelihood = 1 - (1 + (x / a) ** b)**-gamma
+    return likelihood
+
+def nonterm_burr_likelihood(a: float, b: float, gamma:float, x: float):
+    likelihood = (1 + (x / a) ** b)**-gamma
+    # print(likelihood, x, a, b, gamma)
+    return likelihood
+
 
 # def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, predictor: str):
 def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, gamma:float, predictor: str):
     # "log likelihood LL(parameters) = sum_i [ nNT_i * log f(x_i) +  (ntot_i - nNT_i) * log(1-f(x_i)) ] + constant"
     total = find_states_mn(mn)
-    #
-    # predval = predictor(a, b, mn)
     if predictor == "illegal":
         # res = state_count * -math.log(1 + (mn / a) ** -b) + (total - state_count) * -math.log(1 + (mn / a) ** b)
         res = state_count * -math.log(1 + ((mn - gamma) / a) ** -b) + (total - state_count) * -math.log(1 + ((mn-gamma) / a) ** b)
     elif predictor == "nonterm":
         # res = state_count * -math.log(1 + (mn / a) ** b) + (total - state_count) * -math.log(1 + (mn / a) ** -b)
         res = state_count * -math.log(1 + ((mn-gamma) / a) ** b) + (total - state_count) * -math.log(1 + ((mn-gamma) / a) ** -b)
+    elif predictor == "illegal_burr":
+        likelihood = illegal_burr_likelihood(a, b, gamma, mn)
+        if likelihood == 1:
+            likelihood = .99999
+        elif likelihood == 0:
+            likelihood = .00001
+            # res = state_count * math.log(illegal_burr_likelihood(a, b, gamma, mn)) + (total-state_count) * math.log(1 - illegal_burr_likelihood(a, b, gamma, mn))
+        res = state_count * math.log(likelihood) + (total-state_count) * math.log(1 - likelihood)
+    elif predictor == "nonterm_burr":
+        likelihood = nonterm_burr_likelihood(a, b, gamma, mn)
+        if likelihood == 1:
+            likelihood = .99999
+        elif likelihood == 0:
+            likelihood = .00001
+        # res = state_count * math.log(nonterm_burr_likelihood(a, b, gamma, mn)) + (total-state_count) * math.log(1 - nonterm_burr_likelihood(a, b, gamma, mn))
+        res = state_count * math.log(likelihood) + (total-state_count) * math.log(1 - likelihood)
     else:
         print("Invalid LL Predictor")
         raise
@@ -328,17 +351,27 @@ def loglikelihood_sum(vars, mn_list: List, state_list: List, predictor: str):
         total += ll
     return -total / len(mn_list)
 
+def minimize_wrapper(param_tuple: Tuple):
+    x0 = param_tuple[0]
+    mn_list = param_tuple[1]
+    state_list = param_tuple[2]
+    predictor = param_tuple[3]
+    res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method='L-BFGS-B',
+                            bounds=((0, None), (1, None), (0, None)))
+    return res
+
+
 
 def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, gamma0: float, predictor: str):
-    a0_arr = numpy.random.uniform(0, 800, 3)
-    b0_arr = numpy.random.uniform(0, 10, 3)
+    a0_arr = numpy.random.uniform(1, 900, 5)
+    b0_arr = numpy.random.uniform(1, 10, 5)
     # x0 = numpy.array([a0, b0])
-    gamma0_arr = numpy.random.uniform(-100, 0, 3)
+    gamma0_arr = numpy.random.uniform(0, 10, 5)
     x0 = numpy.array([a0, b0, gamma0])
     # x0 = numpy.array([a0])
     # x0_arr = numpy.random.uniform(0, 600, 10)
 
-    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'Powell', bounds=((0,None),(0,None),(None,0)))
+    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),(1,None),(0, None)))
     # best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method='Powell', bounds=((0,None),(0,None)))
 
     for x0 in itertools.product(a0_arr, b0_arr, gamma0_arr):
@@ -347,11 +380,11 @@ def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, gamma0: f
     #     print(best)
     # for x0 in x0_arr:
         x0 = numpy.array([x0])
-        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'Powell', bounds=((0,None),(0,None),(None,0)))
+        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),(1,None),(0,None)))
         # res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor),
         #                               method='Powell')
     #
-        best = res if res.fun < best.fun or numpy.isnan(best.fun) else best
+        best = res if (res.fun < best.fun and not numpy.isnan(res.fun)) or numpy.isnan(best.fun) else best
     print(best)
     return best
 
@@ -416,13 +449,7 @@ def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List,
     for i in range(len(prop_by_k)):
         mn_vals = states_by_k[i][0]
         state_vals = states_by_k[i][1]
-        # [3.22808636] for nonterm
-        # [3.20243921] for illegal
-        # if likelihood_function == illegal_prop_likelihood:
-        #     b = 3.16308997
-        # elif likelihood_function == nonterm_prop_likelihood:
-        #     b = 3.140928
-        optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 6, -2, state_type)
+        optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 2, 2, state_type)
         # optimizer_res = MLE_given_k(mn_vals, state_vals, 20, 6, state_type)
         print(optimizer_res)
         print(optimizer_res.fun)
@@ -430,7 +457,7 @@ def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List,
         b = optimizer_res.x[1]
         gamma = optimizer_res.x[2]
         # estimated_prop = [likelihood_function(a, b, x) for x in prop_by_k[i][0]]
-        estimated_prop = [likelihood_function(a, b, x-gamma) for x in prop_by_k[i][0]]
+        estimated_prop = [likelihood_function(a, b, gamma, x) for x in prop_by_k[i][0]]
         prediction_coords = zip(prop_by_k[i][0], estimated_prop)
         prediction_coords = sorted(prediction_coords)
         prediction_coords = zip(*prediction_coords)
@@ -443,7 +470,9 @@ def arrange_record_and_plot_mle(state_type: str, do_plot: bool, prop_by_k: List,
             rowwriter = csv.writer(resultfile, delimiter=',')
             # row = [i + 3, a, b]
             row = [i + 3, a, b, gamma]
+            print(row)
             row = [str(entry) for entry in row]
+            print(row)
             rowwriter.writerow(row)
     return mle_preds
 
@@ -759,11 +788,11 @@ if __name__ == "__main__":
     """Old powerlaw fitting sequence"""
 
     #
-    # MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")
+    # MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")z
     # MLE_nested_all_k(illegal_prop_by_k, illegal_by_k, "illegal")
 
-    mle_illegal_preds = arrange_record_and_plot_mle("illegal", True, illegal_prop_by_k, illegal_by_k, illegal_prop_likelihood)
-    # mle_nonterm_preds = arrange_record_and_plot_mle("nonterm", True, nonterm_prop_by_k, nonterms_by_k, nonterm_prop_likelihood)
+    mle_illegal_preds = arrange_record_and_plot_mle("illegal_burr", True, illegal_prop_by_k, illegal_by_k, illegal_burr_likelihood)
+    # mle_nonterm_preds = arrange_record_and_plot_mle("nonterm_burr", True, nonterm_prop_by_k, nonterms_by_k, nonterm_burr_likelihood)
     # mle_term_preds = arrange_record_plot_terminal(False, terms_by_k, term_prop_by_k, mle_illegal_preds, mle_nonterm_preds)
     # # #
     # illegal_a_and_k_values = return_and_plot_a_coefficients("illegal", False)
@@ -780,7 +809,7 @@ if __name__ == "__main__":
     # plt.plot(line, nonterm_powerlaw_preds)
 
 
-    plt.title(label="Illegal proportion max parameters")
+    plt.title(label="Illegal proportion Burr dist max parameters")
     plt.ylabel("Proportion")
     plt.xlabel("m*n")
     plt.yscale("linear")

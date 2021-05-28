@@ -118,7 +118,8 @@ if __name__ == "__main__":
     nine_boards = [(x, y, 9, fpath) for x in range(9, 20) for y in range(11, 20) if x <= y]
     ten_boards = [(x, y, 10, fpath) for x in range(10, 20) for y in range(11, 20) if x <= y]
     result_boards = eight_boards + nine_boards + ten_boards
+    run_and_record_to_csv(fpath, 3, 3, 3, 10, 100000)
     # for board in result_boards:
     #     run_and_record_to_csv(fpath, board[0], board[1], board[2], 10, 100000)
-    with mp.Pool(10) as p:
-        p.map(mp_worker, result_boards)
+    # with mp.Pool(10) as p:
+    #     p.map(mp_worker, result_boards)
