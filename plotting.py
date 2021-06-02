@@ -143,21 +143,34 @@ def loglikelihood_at_mn(mn: float, state_count: float, a: float, b: float, gamma
         # res = state_count * -math.log(1 + (mn / a) ** b) + (total - state_count) * -math.log(1 + (mn / a) ** -b)
         res = state_count * -math.log(1 + ((mn-gamma) / a) ** b) + (total - state_count) * -math.log(1 + ((mn-gamma) / a) ** -b)
     elif predictor == "illegal_burr":
-        likelihood = illegal_burr_likelihood(a, b, gamma, mn)
-        if likelihood == 1:
-            likelihood = .99999
-        elif likelihood == 0:
-            likelihood = .00001
-            # res = state_count * math.log(illegal_burr_likelihood(a, b, gamma, mn)) + (total-state_count) * math.log(1 - illegal_burr_likelihood(a, b, gamma, mn))
-        res = state_count * math.log(likelihood) + (total-state_count) * math.log(1 - likelihood)
+        state_probability = illegal_burr_likelihood(a, b, gamma, mn)
+        if state_probability == 0:
+            first_term = math.log(gamma) + b*math.log(mn/a)
+            second_term = math.log(1 - state_probability)
+        elif state_probability == 1:
+            first_term =  math.log(state_probability)
+            second_term = -b*gamma*math.log(mn/a)
+        else:
+            first_term = math.log(state_probability)
+            second_term = math.log(1-state_probability)
+        if state_probability == 0 or state_probability == 1:
+            print(state_probability, a,b, gamma, mn)
+        res = state_count * first_term + (total-state_count) * second_term
+
     elif predictor == "nonterm_burr":
-        likelihood = nonterm_burr_likelihood(a, b, gamma, mn)
-        if likelihood == 1:
-            likelihood = .99999
-        elif likelihood == 0:
-            likelihood = .00001
-        # res = state_count * math.log(nonterm_burr_likelihood(a, b, gamma, mn)) + (total-state_count) * math.log(1 - nonterm_burr_likelihood(a, b, gamma, mn))
-        res = state_count * math.log(likelihood) + (total-state_count) * math.log(1 - likelihood)
+        state_probability = nonterm_burr_likelihood(a, b, gamma, mn)
+        if state_probability == 0:
+            first_term = -b * gamma * math.log(mn / a)
+            second_term = math.log(1 - state_probability)
+        elif state_probability == 1:
+            first_term = math.log(state_probability)
+            second_term = math.log(gamma) + b * math.log(mn / a)
+        else:
+            first_term = math.log(state_probability)
+            second_term = math.log(1 - state_probability)
+        if state_probability == 0 or state_probability == 1:
+            print(state_probability, a,b, gamma, mn)
+        res = state_count * first_term + (total-state_count) * second_term
     else:
         print("Invalid LL Predictor")
         raise
@@ -363,15 +376,15 @@ def minimize_wrapper(param_tuple: Tuple):
 
 
 def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, gamma0: float, predictor: str):
-    a0_arr = numpy.random.uniform(1, 900, 5)
-    b0_arr = numpy.random.uniform(1, 10, 5)
+    a0_arr = numpy.random.uniform(1, 200, 2)
+    b0_arr = numpy.random.uniform(1, 3, 2)
     # x0 = numpy.array([a0, b0])
-    gamma0_arr = numpy.random.uniform(0, 10, 5)
+    gamma0_arr = numpy.random.uniform(0, 2, 2)
     x0 = numpy.array([a0, b0, gamma0])
     # x0 = numpy.array([a0])
     # x0_arr = numpy.random.uniform(0, 600, 10)
 
-    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),(1,None),(0, None)))
+    best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((1,None),(0.1,None),(0.1, None)))
     # best = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method='Powell', bounds=((0,None),(0,None)))
 
     for x0 in itertools.product(a0_arr, b0_arr, gamma0_arr):
@@ -380,11 +393,11 @@ def MLE_given_k(mn_list: List, state_list: List, a0: float, b0: float, gamma0: f
     #     print(best)
     # for x0 in x0_arr:
         x0 = numpy.array([x0])
-        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((0,None),(1,None),(0,None)))
+        res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor), method= 'L-BFGS-B', bounds=((1,None),(0.1,None),(0.1,None)))
         # res = scipy.optimize.minimize(loglikelihood_sum, x0=x0, args=(mn_list, state_list, predictor),
         #                               method='Powell')
     #
-        best = res if (res.fun < best.fun and not numpy.isnan(res.fun)) or numpy.isnan(best.fun) else best
+        best = res if (res.fun < best.fun and not numpy.isnan(res.fun)) or numpy.isnan(best.fun) and res.success else best
     print(best)
     return best
 
@@ -809,6 +822,7 @@ if __name__ == "__main__":
     # plt.plot(line, nonterm_powerlaw_preds)
 
 
+    # plt.title(label="Nonterm proportion Burr dist max parameters")
     plt.title(label="Illegal proportion Burr dist max parameters")
     plt.ylabel("Proportion")
     plt.xlabel("m*n")
