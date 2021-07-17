@@ -109,17 +109,11 @@ if __name__ == "__main__":
     #     headerwriter = csv.writer(resultfile, delimiter=',')
     #     header = ["m", "n", "k", "mn", "nonterm_mean", "nonterm_sterror", "term_mean", "term_sterror", "illegal_mean", "illegal_sterror"]
     #     headerwriter.writerow(header)
-    four_boards = [(x, y, 4, fpath) for x in range(10, 20) for y in range(11, 20) if x <= y]
-    three_boards = [(x, y, 3, fpath) for x in range(10, 20) for y in range(11, 20) if x <= y]
-    five_boards = [(x, y, 5, fpath) for x in range(10, 20) for y in range(16, 20) if x <= y]
-    six_boards = [(x, y, 6, fpath) for x in range(10, 20) for y in range(16, 20) if x <= y]
-    seven_boards = [(x, y, 7, fpath) for x in range(10, 20) for y in range(11, 20) if x <= y]
-    eight_boards = [(x, y, 8, fpath) for x in range(8, 20) for y in range(11, 20) if x <= y]
-    nine_boards = [(x, y, 9, fpath) for x in range(9, 20) for y in range(11, 20) if x <= y]
-    ten_boards = [(x, y, 10, fpath) for x in range(10, 20) for y in range(11, 20) if x <= y]
-    result_boards = eight_boards + nine_boards + ten_boards
-    run_and_record_to_csv(fpath, 3, 3, 3, 10, 100000)
+    two_boards = [(x, y, 2, fpath) for x in range(10, 20) for y in range(2, 20) if x <= y]
+
+    result_boards = two_boards
+    run_and_record_to_csv(fpath, 13, 13, 9, 10, 100000)
     # for board in result_boards:
     #     run_and_record_to_csv(fpath, board[0], board[1], board[2], 10, 100000)
-    # with mp.Pool(10) as p:
+    # with mp.Pool(8) as p:
     #     p.map(mp_worker, result_boards)
