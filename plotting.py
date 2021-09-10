@@ -374,6 +374,31 @@ def fit_coefficient_power_law(a_values: List, k_values: List):
     return res
 
 
+def maxturns_arrays():
+    zero_maxes = []
+    zero_maxturns = []
+    one_maxes = []
+    one_maxturns = []
+    two_maxes = []
+    two_maxturns = []
+    for i in range(2, 200):
+        turns = [x / i for x in range(1, i + 1)]
+        states = find_states_per_turn(i)
+        states = [states[x] for x in range(1, i + 1)]
+        if i % 3 == 0:
+            zero_maxes.append(max(states))
+            zero_maxturns.append((states.index(zero_maxes[-1]) + 1) / (len(turns)))
+        elif i % 3 == 1:
+            one_maxes.append(max(states))
+            one_maxturns.append((states.index(one_maxes[-1]) + 1) / (len(turns)))
+        elif i % 3 == 2:
+            two_maxes.append(max(states))
+            two_maxturns.append((states.index(two_maxes[-1]) + 1) / (len(turns)))
+
+    return zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns
+
+
+
 if __name__ == "__main__":
 
     # headers:
@@ -421,26 +446,21 @@ if __name__ == "__main__":
     # # plt.plot(line, illegal_powerlaw_preds)
     # plt.plot(line, nonterm_powerlaw_preds)
 
-    maxes = []
-    maxturns = []
-
-    for i in range(9, 200):
-        turns = [x/i for x in range(1, i+1)]
-        states = find_states_per_turn(i)
-        states = [states[x] for x in range(1, i+1)]
-        maxes.append(max(states))
-        maxturns.append((states.index(maxes[-1])+1)/(len(turns)))
-        print(states.index(maxes[-1]))
-        print(states.index(max(states))/len(states))
-        # plt.plot(turns, states, label = f'{i}')
-    plt.scatter(maxturns, maxes)
+    zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns = maxturns_arrays()
+    print(maxturns_arrays())
+    plt.scatter(zero_maxturns, zero_maxes, color=colors[0], s=5, label = "mn = 0 mod 3")
+    plt.scatter(one_maxturns, one_maxes, color=colors[1], s=5, label = "mn = 1 mod 3")
+    plt.scatter(two_maxturns, two_maxes, color=colors[2], s=5, label = "mn = 2 mod 3")
+    plt.plot(zero_maxturns, zero_maxes, color=colors[0])
+    plt.plot(one_maxturns, one_maxes, color=colors[1])
+    plt.plot(two_maxturns, two_maxes, color=colors[2])
     # plt.plot(maxturns, maxes)
 
 
-    plt.title(label="Maximum State Count")
+    # plt.title(label="Maximum State Count")
     # plt.title(label="Possible States per turn")
-    plt.ylabel("State Count")
-    plt.xlabel("Proportion of Turns")
+    plt.ylabel("Maximum number of states per turn")
+    plt.xlabel("Occupancy at maximum")
     plt.yscale("log")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
@@ -454,7 +474,7 @@ if __name__ == "__main__":
 
 
     plt.yscale("log")
-    # plt.legend()
+    plt.legend()
 
     #
 
