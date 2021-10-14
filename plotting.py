@@ -20,16 +20,18 @@ def plot_proportions(nonterm_prop: List[float], term_prop: List[float], illegal_
     plt.title(label=f"m={m}, n={n}, k={k}")
     colors = ['#1b9e77', '#d95f02', '#7570b3']
     x = [x for x in range(len(nonterm_prop))]
-    plt.scatter(x, nonterm_prop,color = colors[0])
-    plt.scatter(x, term_prop,color=colors[1])
-    plt.scatter(x, illegal_prop,color = colors[2])
+    plt.scatter(x, nonterm_prop,color = colors[0], s=2.5)
+    plt.scatter(x, term_prop,color=colors[1], s=2.5)
+    plt.scatter(x, illegal_prop,color = colors[2], s=2.5)
     labels = ["Non Terminal", "Terminal", "Illegal"]
     plt.legend(labels=labels)
+    plt.legend(title="State Types")
     plt.ylabel("Proportion of States")
     plt.xlabel("Turn")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    plt.rcParams.update({'font.size': 12})
     plt.show()
 
 
@@ -77,6 +79,14 @@ def csv_results_to_dicts(filepath: str) -> List:
         for row in res_reader:
             results.append(row)
         return results
+
+def csv_results_to_tupledict(filepath:str) -> dict:
+    with open(filepath, newline='') as csvfile:
+        result_dict = {}
+        res_reader = csv.DictReader(csvfile)
+        for row in res_reader:
+            result_dict[(row["m"], row["n"], row["k"])] = row
+        return result_dict
 
 
 def variables_by_k(k: int, variable1: str, variable2: str, results: List[Dict]) -> Tuple[List, List]:
@@ -446,15 +456,17 @@ if __name__ == "__main__":
     # # plt.plot(line, illegal_powerlaw_preds)
     # plt.plot(line, nonterm_powerlaw_preds)
 
-    zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns = maxturns_arrays()
-    print(maxturns_arrays())
-    plt.scatter(zero_maxturns, zero_maxes, color=colors[0], s=5, label = "mn = 0 mod 3")
-    plt.scatter(one_maxturns, one_maxes, color=colors[1], s=5, label = "mn = 1 mod 3")
-    plt.scatter(two_maxturns, two_maxes, color=colors[2], s=5, label = "mn = 2 mod 3")
-    plt.plot(zero_maxturns, zero_maxes, color=colors[0])
-    plt.plot(one_maxturns, one_maxes, color=colors[1])
-    plt.plot(two_maxturns, two_maxes, color=colors[2])
-    # plt.plot(maxturns, maxes)
+    # """Maxturns plot"""
+    #
+    # zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns = maxturns_arrays()
+    # print(maxturns_arrays())
+    # plt.scatter(zero_maxturns, zero_maxes, color=colors[0], s=5, label = "mn = 0 mod 3")
+    # plt.scatter(one_maxturns, one_maxes, color=colors[1], s=5, label = "mn = 1 mod 3")
+    # plt.scatter(two_maxturns, two_maxes, color=colors[2], s=5, label = "mn = 2 mod 3")
+    # plt.plot(zero_maxturns, zero_maxes, color=colors[0])
+    # plt.plot(one_maxturns, one_maxes, color=colors[1])
+    # plt.plot(two_maxturns, two_maxes, color=colors[2])
+    # # plt.plot(maxturns, maxes)
 
 
     # plt.title(label="Maximum State Count")
@@ -475,6 +487,7 @@ if __name__ == "__main__":
 
     plt.yscale("log")
     plt.legend()
+    plt.figure(figsize=(3,5))
 
     #
 
