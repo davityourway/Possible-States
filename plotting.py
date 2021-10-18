@@ -17,58 +17,75 @@ from montecarlostates import find_states_per_turn
 
 def plot_proportions(nonterm_prop: List[float], term_prop: List[float], illegal_prop: List[float], m: int, n: int,
                      k: int):
+    plt.rcParams.update({'font.size': 14})
+    plt.rcParams["figure.figsize"] = (8, 5)
     plt.title(label=f"m={m}, n={n}, k={k}")
     colors = ['#1b9e77', '#d95f02', '#7570b3']
     x = [x for x in range(len(nonterm_prop))]
-    plt.scatter(x, nonterm_prop,color = colors[0], s=2.5)
-    plt.scatter(x, term_prop,color=colors[1], s=2.5)
-    plt.scatter(x, illegal_prop,color = colors[2], s=2.5)
+    plt.scatter(x, nonterm_prop,color = colors[0], s=30)
+    plt.scatter(x, term_prop,color=colors[1], s=30)
+    plt.scatter(x, illegal_prop,color = colors[2], s=30)
     labels = ["Non Terminal", "Terminal", "Illegal"]
-    plt.legend(labels=labels)
-    plt.legend(title="State Types")
+    legend = plt.legend(labels=labels,bbox_to_anchor=(0,.5), loc="center left", title="State Types")
+    for handle in legend.legendHandles:
+        handle._sizes = [30]
     plt.ylabel("Proportion of States")
     plt.xlabel("Turn")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams['axes.labelsize'] = 100
+    plt.rcParams['axes.titlesize'] = 100
     plt.show()
 
 
 def plot_log_states(statespt: List[float], non_termpt: List[float], termpt: List[float], illegalpt: List[float], m: int,
                     n: int, k: int):
-    colors = ['#1b9e77', '#d95f02', '#7570b3']
+    colors = ["#e7298a", '#1b9e77', '#d95f02', '#7570b3']
+    plt.figure(figsize=(3,5))
+    plt.rcParams.update({'font.size': 14})
     plt.title(label=f"m={m}, n={n}, k={k}")
     plt.plot(statespt, linestyle='dashed')
     plt.plot(non_termpt, color=colors[0])
     plt.plot(termpt, color=colors[1])
     plt.plot(illegalpt, color=colors[2])
     plt.yscale("log")
-    labels = ["Possible States", "Non Terminal", "Terminal", "Illegal"]
-    plt.legend(labels=labels)
+    labels = ["Total States", "Non-Terminal", "Terminal", "Illegal"]
+    plt.legend(labels=labels, title="State Types")
     plt.ylabel("Log(States)")
     plt.xlabel("Turn")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+
     plt.show()
 
 
 def plot_states(statespt: List[float], non_termpt: List[float], termpt: List[float], illegal_pt: List[float], m: int,
                 n: int, k: int):
-    plt.title(label=f"m={m}, n={n}, k={k}")
-    plt.plot(statespt)
-    plt.plot(non_termpt)
-    plt.plot(termpt)
-    plt.plot(illegal_pt)
-    labels = ["Possible States", "Non Terminal", "Terminal", "Illegal"]
-    plt.legend(labels=labels)
+    # plt.title(label=f"m={m}, n={n}, k={k}")
+    plt.rcParams.update({'font.size': 12})
+    x = [x for x in range(len(statespt))]
+    colors = ["#e7298a", '#1b9e77', '#d95f02', '#7570b3']
+    plt.scatter(x, statespt, color=colors[0], s=2.5)
+    plt.scatter(x, non_termpt, color=colors[1], s=2.5)
+    plt.scatter(x, termpt, color=colors[2], s=2.5)
+    plt.scatter(x, illegal_pt, color=colors[3], s=2.5)
+    # plt.plot(non_termpt)
+    # plt.plot(termpt)
+    # plt.plot(illegal_pt)
+    labels = ["Possible States", "Non-Terminal", "Terminal", "Illegal"]
+    legend = plt.legend(labels=labels, title="State Types")
+    for handle in legend.legendHandles:
+        handle._sizes = [20]
     plt.ylabel("States")
     plt.xlabel("Turn")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
+    ax.yaxis.major.formatter._useMathText = True
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    plt.rcParams.update({'font.size': 12})
     plt.show()
 
 
@@ -347,6 +364,10 @@ def arrange_record_plot_terminal_by_points(do_plot: bool, terms_by_k: List, term
 
 def plot_terminal_by_parameter(terms_by_k: List, illegal_params: List, nonterm_params: List):
     mn_array = numpy.linspace(0, 380, 500)
+    plt.rcParams["figure.figsize"] = (8, 5)
+    plt.style.use('tableau-colorblind10')
+    plt.rcParams.update({'font.size': 14})
+    plt.rcParams.update({'lines.markersize': 4})
     for i in range(len(illegal_params)):
         nonterm_k_para = nonterm_params[i]
         illegal_k_para = illegal_params[i]
@@ -354,6 +375,20 @@ def plot_terminal_by_parameter(terms_by_k: List, illegal_params: List, nonterm_p
                       illegal_burr_likelihood(float(illegal_k_para['a']), float(illegal_k_para['b']), float(illegal_k_para['gamma']), x) for x in mn_array]
         plt.plot(mn_array, term_preds)
         plt.scatter(terms_by_k[i][0], terms_by_k[i][1], label=f'{i+2}')
+
+
+def plot_state_by_parameter(state_count_by_k: List, params: List, likelihood_function: Callable):
+    mn_array = numpy.linspace(0, 380, 500)
+    # colors = ['#d73027','#f46d43','#fdae61','#fee090','#ffffbf','#e0f3f8','#abd9e9','#74add1','#4575b4']
+    plt.rcParams["figure.figsize"] = (8, 5)
+    plt.style.use('tableau-colorblind10')
+    plt.rcParams.update({'font.size': 14})
+    plt.rcParams.update({'lines.markersize': 4})
+    for i in range(len(params)):
+        i_param = {key:float(params[i][key]) for key in params[i].keys()}
+        estimated_prop = [likelihood_function(i_param["a"], i_param["b"], i_param["gamma"], x) for x in mn_array]
+        plt.plot(mn_array, estimated_prop)
+        plt.scatter(state_count_by_k[i][0], state_count_by_k[i][1], label=f'{i+2}')
 
 
 def return_and_plot_a_coefficients(state_type: str, do_plot: bool):
@@ -433,66 +468,79 @@ if __name__ == "__main__":
     """Old powerlaw fitting sequence"""
 
     #
-    # MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")z
+    # MLE_nested_all_k(nonterm_prop_by_k, nonterms_by_k, "nonterm")
     # MLE_nested_all_k(illegal_prop_by_k, illegal_by_k, "illegal")
 
     # mle_illegal_preds, illegal_params = arrange_record_and_plot_mle("illegal_burr", True, illegal_prop_by_k, illegal_by_k, illegal_burr_likelihood)
     # mle_nonterm_preds, nonterm_params = arrange_record_and_plot_mle("nonterm_burr", True, nonterm_prop_by_k, nonterms_by_k, nonterm_burr_likelihood)
+    # mle_term_preds = arrange_record_plot_terminal_by_points(True, terms_by_k, term_prop_by_k, mle_illegal_preds, mle_nonterm_preds)
+
+    """Plots from recorded fitting"""
+    #
     # nonterm_params = csv_results_to_dicts('nonterm_burrcoefficients.csv')
     # illegal_params = csv_results_to_dicts('illegal_burrcoefficients.csv')
     # plot_terminal_by_parameter(term_prop_by_k, illegal_params, nonterm_params)
-    # mle_term_preds = arrange_record_plot_terminal_by_points(True, terms_by_k, term_prop_by_k, mle_illegal_preds, mle_nonterm_preds)
+
+    """fitting sequence"""
+
+    # plot_state_by_parameter(illegal_prop_by_k, illegal_params, illegal_burr_likelihood)
+    # plot_state_by_parameter(nonterm_prop_by_k, nonterm_params,nonterm_burr_likelihood)
     # # #
     # illegal_a_and_k_values = return_and_plot_a_coefficients("illegal", False)
     # nonterm_a_and_k_values = return_and_plot_a_coefficients("nonterm", True)
-
+    #
     # illegal_powerlaw_fit = fit_coefficient_power_law(illegal_a_and_k_values[0], illegal_a_and_k_values[1])[0]
     # nonterm_powerlaw_fit = fit_coefficient_power_law(nonterm_a_and_k_values[0], nonterm_a_and_k_values[1])[0]
     #
     # illegal_powerlaw_preds = [power_law(x, illegal_powerlaw_fit[0], illegal_powerlaw_fit[1]) for x in numpy.linspace(3, 10, 20)]
     # line = numpy.linspace(3, 10, 20)
     # nonterm_powerlaw_preds = [power_law(x, nonterm_powerlaw_fit[0], nonterm_powerlaw_fit[1]) for x in numpy.linspace(3, 10, 20)]
-    #
-    # # plt.plot(line, illegal_powerlaw_preds)
+
+    # plt.plot(line, illegal_powerlaw_preds)
     # plt.plot(line, nonterm_powerlaw_preds)
 
-    # """Maxturns plot"""
-    #
-    # zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns = maxturns_arrays()
-    # print(maxturns_arrays())
-    # plt.scatter(zero_maxturns, zero_maxes, color=colors[0], s=5, label = "mn = 0 mod 3")
-    # plt.scatter(one_maxturns, one_maxes, color=colors[1], s=5, label = "mn = 1 mod 3")
-    # plt.scatter(two_maxturns, two_maxes, color=colors[2], s=5, label = "mn = 2 mod 3")
-    # plt.plot(zero_maxturns, zero_maxes, color=colors[0])
-    # plt.plot(one_maxturns, one_maxes, color=colors[1])
-    # plt.plot(two_maxturns, two_maxes, color=colors[2])
-    # # plt.plot(maxturns, maxes)
+    """Maxturns plot"""
+    plt.rcParams["figure.figsize"] = (8, 5)
+    plt.style.use('tableau-colorblind10')
+    plt.rcParams.update({'font.size': 14})
+    plt.rcParams.update({'lines.markersize': 4})
+
+    zero_maxes, zero_maxturns, one_maxes, one_maxturns, two_maxes, two_maxturns = maxturns_arrays()
+    plt.scatter(zero_maxturns, zero_maxes, color=colors[0], s=5, label = "mn = 0 mod 3")
+    plt.scatter(one_maxturns, one_maxes, color=colors[1], s=5, label = "mn = 1 mod 3")
+    plt.scatter(two_maxturns, two_maxes, color=colors[2], s=5, label = "mn = 2 mod 3")
+    plt.plot(zero_maxturns, zero_maxes, color=colors[0])
+    plt.plot(one_maxturns, one_maxes, color=colors[1])
+    plt.plot(two_maxturns, two_maxes, color=colors[2])
+    # plt.plot(maxturns, maxes)
 
 
-    # plt.title(label="Maximum State Count")
+    # plt.title(label="Maximum State Count", size=14)
     # plt.title(label="Possible States per turn")
-    plt.ylabel("Maximum number of states per turn")
+    plt.ylabel("Maximum states")
     plt.xlabel("Occupancy at maximum")
+    # plt.ylabel("Proportion ")
+    # plt.xlabel("Board Size")
+    # plt.title("Terminal Proportion by k", size=14)
     plt.yscale("log")
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # scientific notation
-    formatter = ticker.ScalarFormatter(useMathText=True)
-    formatter.set_scientific(True)
+
+    # # scientific notation
+    # formatter = ticker.ScalarFormatter(useMathText=True)
+    # formatter.set_scientific(True)
     # plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-    ax.yaxis.set_major_formatter(formatter)
+    # ax.yaxis.set_major_formatter(formatter)
 
 
-    plt.yscale("log")
-    plt.legend()
-    plt.figure(figsize=(3,5))
+    # plt.yscale("log")
+    legend = plt.legend(bbox_to_anchor=(.5,1), loc="upper left", title="Turn")
+    for handle in legend.legendHandles:
+        handle._sizes = [30]
 
     #
 
-
-
-
-
+    plt.rcParams["figure.figsize"] = (5, 3)
     plt.show()
