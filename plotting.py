@@ -1,5 +1,6 @@
 import csv
 import pandas
+import ast
 import math
 import scipy
 import numpy
@@ -12,6 +13,8 @@ from scipy.interpolate import interp1d
 from scipy import optimize
 from typing import List, Tuple, Dict, Callable
 from math import factorial
+
+import montecarlostates
 from montecarlostates import find_states_per_turn
 
 
@@ -38,6 +41,15 @@ def plot_proportions(nonterm_prop: List[float], term_prop: List[float], illegal_
     plt.rcParams['axes.titlesize'] = 100
     plt.show()
 
+def plot_proportion_from_results_dict(results: Dict, m, n, k):
+    result = results[(m,n,k)]
+    total_states_dict = montecarlostates.find_states_per_turn(result["mn"])
+    total_states_list = [total_states_dict[i] for i in range(len(total_states_dict))]
+    non_term_prop = [result["non_term_est_by_turn"][i]/total_states_list[i] for i in range(len(total_states_list))]
+    term_prop = [result["term_est_by_turn"][i]/total_states_list[i] for i in range(len(total_states_list))]
+    illegal_prop = [result["illegal_est_by_turn"][i]/total_states_list[i] for i in range(len(total_states_list))]
+    plot_proportions(non_term_prop,term_prop, illegal_prop, m,n,k)
+
 
 def plot_log_states(statespt: List[float], non_termpt: List[float], termpt: List[float], illegalpt: List[float], m: int,
                     n: int, k: int):
@@ -59,6 +71,13 @@ def plot_log_states(statespt: List[float], non_termpt: List[float], termpt: List
     ax.spines["right"].set_visible(False)
 
     plt.show()
+
+def plot_log_states_from_results_dict(results: Dict, m, n, k):
+    result = results[(m,n,k)]
+    total_states_dict = montecarlostates.find_states_per_turn(result["mn"])
+    total_states_list = [total_states_dict[i] for i in range(len(total_states_dict))]
+    plot_log_states(total_states_list, result["non_term_est_by_turn"],
+                    result["term_est_by_turn"], result["illegal_est_by_turn"], m,n,k)
 
 
 def plot_states(statespt: List[float], non_termpt: List[float], termpt: List[float], illegal_pt: List[float], m: int,
@@ -88,8 +107,14 @@ def plot_states(statespt: List[float], non_termpt: List[float], termpt: List[flo
     plt.rcParams.update({'font.size': 12})
     plt.show()
 
+def plot_states_from_results_dict(results: Dict, m, n, k):
+    result = results[(m,n,k)]
+    total_states_dict = montecarlostates.find_states_per_turn(result["mn"])
+    total_states_list = [total_states_dict[i] for i in range(len(total_states_dict))]
+    plot_states(total_states_list, result["non_term_est_by_turn"],
+                    result["term_est_by_turn"], result["illegal_est_by_turn"], m,n,k)
 
-def csv_results_to_dicts(filepath: str) -> List:
+def csv_results_to_dicts_v1(filepath: str) -> List:
     with open(filepath, newline='') as csvfile:
         res_reader = csv.DictReader(csvfile)
         results = []
@@ -103,6 +128,17 @@ def csv_results_to_tupledict(filepath:str) -> dict:
         res_reader = csv.DictReader(csvfile)
         for row in res_reader:
             result_dict[(row["m"], row["n"], row["k"])] = row
+        return result_dict
+
+def csv_results_ast_to_tupledict(filepath:str) -> dict:
+    with open(filepath, newline='') as csvfile:
+        result_dict = {}
+        res_reader = csv.DictReader(csvfile)
+        for row in res_reader:
+            try:
+                result_dict[(int(row["m"]), int(row["n"]), int(row["k"]))] = {key: ast.literal_eval(value) for key, value in row.items() if value is not None}
+            except:
+                print("Could not process" + str((int(row["m"]), int(row["n"]), int(row["k"]))))
         return result_dict
 
 
@@ -392,7 +428,7 @@ def plot_state_by_parameter(state_count_by_k: List, params: List, likelihood_fun
 
 
 def return_and_plot_a_coefficients(state_type: str, do_plot: bool):
-    results = csv_results_to_dicts(f"{state_type}coefficients.csv")
+    results = csv_results_to_dicts_v1(f"{state_type}coefficients.csv")
     a_values = []
     k_values = []
     b = results[0]["b"]
@@ -448,7 +484,7 @@ if __name__ == "__main__":
 
     # headers:
     # m,n,k,mn,nonterm_mean,nonterm_sterror,term_mean,term_sterror,illegal_mean,illegal_sterror
-    results = csv_results_to_dicts("resulttable.csv")
+    results = csv_results_to_dicts_v1("resulttable.csv")
     nonterms_by_k = []
     terms_by_k = []
     illegal_by_k = []
